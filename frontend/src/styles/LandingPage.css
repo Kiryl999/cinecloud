@@ -1,0 +1,215 @@
+:root {
+  color-scheme: light;
+  --ink: #1b1d29;
+  --marquee: #14151f;
+  --paper: #faf6ee;
+  --amber: #e8a33d;
+  --amber-bright: #f4c76b;
+  --rule: #ddd5c2;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.landing {
+  background: var(--paper);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber-bright);
+  margin-bottom: 1rem;
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  background: var(--marquee);
+  color: #f5f1e8;
+  text-align: center;
+  padding: 4rem 2rem 5rem;
+}
+
+.hero nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 3rem;
+}
+
+.logo {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #f5f1e8;
+}
+
+.hero nav a {
+  color: #f5f1e8;
+  text-decoration: none;
+  opacity: 0.8;
+}
+
+.hero h1 {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: clamp(2rem, 4vw, 3rem);
+  max-width: 700px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.15;
+}
+
+.hero p {
+  max-width: 480px;
+  margin: 0 auto 2.5rem;
+  color: #cfc9bb;
+  line-height: 1.6;
+}
+
+.cta {
+  display: inline-block;
+  background: var(--amber);
+  color: var(--marquee);
+  padding: 0.85rem 1.75rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.cta:hover {
+  background: var(--amber-bright);
+}
+
+/* ---------- Features ---------- */
+.features {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: var(--paper);
+}
+
+.features h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.feature h3 {
+  font-family: "Fraunces", serif;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+.feature p {
+  color: #555047;
+  line-height: 1.6;
+}
+
+/* ---------- Pricing — ticket stub signature ---------- */
+.pricing {
+  text-align: center;
+  padding: 5rem 2rem;
+  background: var(--paper);
+}
+
+.pricing h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.ticket {
+  position: relative;
+  max-width: 300px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  text-align: left;
+}
+
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: var(--paper);
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ticket::before { left: -10px; }
+.ticket::after { right: -10px; }
+
+.ticket-divider {
+  border: none;
+  border-top: 2px dashed var(--rule);
+  margin: 1.25rem 0;
+}
+
+.ticket h3 {
+  font-family: "Fraunces", serif;
+  font-size: 1.1rem;
+}
+
+.ticket .price {
+  font-family: "Fraunces", serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0.4rem 0;
+}
+
+.ticket .price span {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #8a8275;
+}
+
+.ticket p.detail {
+  color: #555047;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ---------- Contact ---------- */
+.contact {
+  text-align: center;
+  padding: 5rem 2rem 6rem;
+  background: var(--marquee);
+  color: #f5f1e8;
+}
+
+.contact h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.contact p {
+  color: #cfc9bb;
+  margin-bottom: 1.5rem;
+}
