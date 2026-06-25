@@ -5,9 +5,10 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from backend.app.core.config import settings
-from backend.app.core.database import Base
-from backend.app.models.cinema import Cinema
+from app.core.config import settings
+from app.core.database import Base
+from app.models.cinema import Cinema
+from app.models.screen import Screen
 
 import asyncio
 
