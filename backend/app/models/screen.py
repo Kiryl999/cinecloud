@@ -1,15 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.core.database import Base
+from datetime import datetime
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional
 
-class Screen(Base):
+class Screen(SQLModel, table=True):
     __tablename__ = "screens"
     
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    capacity = Column(Integer, nullable=False)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    capacity: int
+    cinema_id: int = Field(foreign_key="cinemas.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    cinema_id = Column(Integer, ForeignKey("cinemas.id", ondelete="CASCADE"), nullable=False)
-    
-    created_at = Column(DateTime, server_default=func.now())
+    cinema: Optional["Cinema"] = Relationship(back_populates="screens")

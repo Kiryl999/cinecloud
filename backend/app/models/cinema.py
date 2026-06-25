@@ -1,14 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.sql import func
-from app.core.database import Base
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List
 
-class Cinema(Base):
+class Cinema(SQLModel, table=True):
     __tablename__ = "cinemas"
     
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    slug = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, server_default=func.now())
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
+    slug: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    screens = relationship("Screen", back_populates="cinema", cascade="all, delete-orphan")
+    screens: List["Screen"] = Relationship(back_populates="cinema")
