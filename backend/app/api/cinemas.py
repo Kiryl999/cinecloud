@@ -11,4 +11,4 @@ router = APIRouter(prefix="/cinemas", tags=["cinemas"])
 @router.get("/")
 async def list_cinemas(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Cinema))
-    return result.all()
+    return result.scalars().all()

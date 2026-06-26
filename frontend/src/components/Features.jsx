@@ -2,7 +2,7 @@ function Features() {
   const items = [
     { title: "1. Onboarding", text: "We set up your cinema website including the booking system." },
     { title: "2. Movies & Showtimes", text: "Manage your own program through a simple admin panel." },
-    { title: "3. Customers Book Directly", text: "Ticket sales, seat selection, and payment — all automated." },
+    { title: "3. Customers Book Directly", text: "Ticket sales, seat selection, and payment, all automated." },
   ];
 
   return (
