@@ -4,7 +4,7 @@ from sqlmodel import select
 
 from app.core.database import get_db
 from app.models.cinema import Cinema
-from app.models.screen import Screen
+from backend.app.models.hall import Screen
 
 router = APIRouter(prefix="/cinemas", tags=["cinemas"])
 

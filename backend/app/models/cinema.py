@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 
@@ -7,7 +7,8 @@ class Cinema(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True)
-    slug: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    slug: str = Field(index=True, unique=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))    
     
-    screens: List["Screen"] = Relationship(back_populates="cinema")
+    movies: List["Movie"] = Relationship(back_populates="cinema")
+    halls: List["Hall"] = Relationship(back_populates="cinema")
