@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    database_url: str = None # use .env URL
+    database_url: str # use .env URL
         
     class Config:
         env_file = [".env", "../.env"]

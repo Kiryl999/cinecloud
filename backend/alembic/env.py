@@ -17,6 +17,7 @@ from app.models.showtime import Showtime
 from app.models.booking import Booking
 from app.models.showtime_seat import ShowtimeSeat
 from app.models.seat import Seat
+from app.models.cinema_admin import CinemaAdmin
 
 
 import asyncio
