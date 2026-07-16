@@ -1,0 +1,82 @@
+erDiagram
+    Cinemas ||--o{ CinemaAdmins : employs
+    Cinemas ||--o{ Movies : offers
+    Cinemas ||--o{ Halls : owns
+    Cinemas ||--o{ Showtimes : schedules
+    Cinemas ||--o{ Bookings : receives
+
+    Halls ||--o{ Seats : contains
+    Halls ||--o{ Showtimes : hosts
+    Movies ||--o{ Showtimes : "shown as"
+
+    Showtimes ||--o{ ShowtimeSeats : has
+    Seats ||--o{ ShowtimeSeats : "instantiated as"
+
+    Showtimes ||--o{ Bookings : "booked in"
+    Bookings ||--|{ ShowtimeSeats : reserves
+
+    Cinemas {
+        int id PK
+        string name
+        string slug UK
+        datetime created_at
+    }
+
+    CinemaAdmins {
+        int id PK
+        int cinema_id FK
+        string email UK
+        string password_hash
+        datetime created_at
+    }
+
+    Movies {
+        int id PK
+        int cinema_id FK
+        string title
+        string description
+        int release_year
+        int duration_minutes
+        string poster_key
+    }
+
+    Halls {
+        int id PK
+        int cinema_id FK
+        string name
+    }
+
+    Seats {
+        int id PK
+        int hall_id FK
+        int row_number
+        int seat_number
+    }
+
+    Showtimes {
+        int id PK
+        int cinema_id FK
+        int movie_id FK
+        int hall_id FK
+        datetime start_time
+        decimal ticket_price
+    }
+
+    ShowtimeSeats {
+        int id PK
+        int showtime_id FK
+        int booking_id FK
+        string status
+        datetime held_until
+    }
+
+    Bookings {
+        int id PK
+        int cinema_id FK
+        int showtime_id FK
+        string reference UK
+        string guest_email
+        string status
+        decimal total_price
+        datetime created_at
+    }
