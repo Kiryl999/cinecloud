@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 from sqlmodel import select
 
-from app.core.database import get_db
+from app.api.deps import DbSession
 from app.models.cinema import Cinema
-from app.models.hall import Hall
+from app.schemas.cinema import CinemaRead
 
 router = APIRouter(prefix="/cinemas", tags=["cinemas"])
 
-@router.get("/")
-async def list_cinemas(db: AsyncSession = Depends(get_db)):
+
+@router.get("/", response_model=list[CinemaRead])
+async def list_cinemas(db: DbSession):
     result = await db.execute(select(Cinema))
     return result.scalars().all()
