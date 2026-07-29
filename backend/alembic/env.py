@@ -8,16 +8,9 @@ from sqlmodel import SQLModel
 from alembic import context
 
 from app.core.config import settings
-# from app.core.database import Base
 
-from app.models.cinema import Cinema
-from app.models.hall import Hall
-from app.models.movie import Movie
-from app.models.showtime import Showtime
-from app.models.booking import Booking
-from app.models.showtime_seat import ShowtimeSeat
-from app.models.seat import Seat
-from app.models.cinema_admin import CinemaAdmin
+# imports every model so autogenerate sees the full metadata
+import app.models  # noqa: F401
 
 
 import asyncio

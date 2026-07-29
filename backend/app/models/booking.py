@@ -1,5 +1,6 @@
 from decimal import Decimal
 from datetime import datetime, timezone
+from sqlalchemy import Column, DateTime
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 
@@ -15,7 +16,10 @@ class Booking(SQLModel, table=True):
     guest_email: str = Field(index=True)
     status: BookingStatus = Field(default=BookingStatus.pending)
     total_price: Decimal = Field(max_digits=7, decimal_places=2)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
 
     cinema: Optional["Cinema"] = Relationship(back_populates="bookings")
     showtime: Optional["Showtime"] = Relationship(back_populates="bookings")

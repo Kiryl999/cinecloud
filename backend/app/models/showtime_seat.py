@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import DateTime
 from sqlmodel import SQLModel, Column, String, Field, Relationship
 from typing import Optional
 
@@ -15,7 +16,10 @@ class ShowtimeSeat(SQLModel, table=True):
         default=SeatStatus.available,
         sa_column=Column(String, nullable=False, server_default="available")
     )
-    held_until: Optional[datetime] = Field(default=None)
+    held_until: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
 
     showtime: Optional["Showtime"] = Relationship(back_populates="showtime_seats")
     seat: Optional["Seat"] = Relationship(back_populates="showtime_seats")
