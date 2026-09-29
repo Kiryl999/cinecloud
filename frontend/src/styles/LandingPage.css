@@ -1,24 +1,3 @@
-:root {
-  color-scheme: light;
-  --ink: #1b1d29;
-  --marquee: #14151f;
-  --paper: #faf6ee;
-  --amber: #e8a33d;
-  --amber-bright: #f4c76b;
-  --rule: #ddd5c2;
-}
-
-* {
-  margin: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Inter", system-ui, sans-serif;
-  background: var(--paper);
-  color: var(--ink);
-}
-
 .landing {
   background: var(--paper);
 }

@@ -1,0 +1,27 @@
+/* Global design tokens and reset.
+
+   These used to live in LandingPage.css, which meant they only applied while
+   the landing page was mounted. Imported from main.jsx they are available to
+   every route. */
+
+:root {
+  color-scheme: light;
+  --ink: #1b1d29;
+  --marquee: #14151f;
+  --paper: #faf6ee;
+  --amber: #e8a33d;
+  --amber-bright: #f4c76b;
+  --rule: #ddd5c2;
+  --danger: #b3261e;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
