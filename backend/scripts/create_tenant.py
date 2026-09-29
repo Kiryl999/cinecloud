@@ -11,11 +11,31 @@ Usage:
 import argparse
 import asyncio
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlmodel import select
 
 from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.models import Cinema, CinemaAdmin
+
+
+_email = TypeAdapter(EmailStr)
+
+
+def valid_email(value: str) -> str:
+    """Reject addresses the API could never serialise back.
+
+    CinemaAdmin.email is a plain string, but AdminRead declares EmailStr - an
+    address accepted here but rejected by Pydantic would make GET /auth/me fail
+    with 500 for that admin forever. Validating on the way in keeps the two ends
+    consistent.
+    """
+    try:
+        return _email.validate_python(value)
+    except ValidationError as error:
+        raise argparse.ArgumentTypeError(
+            error.errors()[0]["msg"].removeprefix("value is not a valid email address: ")
+        ) from error
 
 
 async def create_tenant(name: str, slug: str, email: str, password: str) -> None:
@@ -50,7 +70,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Create a cinema and its first admin.")
     parser.add_argument("--name", required=True, help="display name of the cinema")
     parser.add_argument("--slug", required=True, help="url slug, e.g. cineplex-bonn")
-    parser.add_argument("--email", required=True, help="login e-mail of the admin")
+    parser.add_argument(
+        "--email", required=True, type=valid_email, help="login e-mail of the admin"
+    )
     parser.add_argument("--password", required=True, help="plaintext password, will be hashed")
     args = parser.parse_args()
 
