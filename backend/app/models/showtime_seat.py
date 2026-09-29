@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, UniqueConstraint
 from sqlmodel import SQLModel, Column, String, Field, Relationship
 from typing import Optional
 
@@ -7,6 +7,11 @@ from app.models.enums import SeatStatus
 
 class ShowtimeSeat(SQLModel, table=True):
     __tablename__ = "showtime_seats"
+    # the database-level guarantee against double-booking a seat:
+    # one seat can be instantiated only once per showtime
+    __table_args__ = (
+        UniqueConstraint("showtime_id", "seat_id", name="uq_showtime_seat"),
+    )
 
     id: Optional[int] = Field(default=None, primary_key=True)
     showtime_id: int = Field(foreign_key="showtimes.id")
