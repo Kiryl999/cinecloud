@@ -36,3 +36,9 @@ dist/
 *.env.docker
 
 md.ipynb
+
+.agents
+.claude
+skills-lock.json
+
+graphify-out/
