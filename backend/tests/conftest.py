@@ -15,7 +15,9 @@ inside its own throw-away loop.
 """
 
 import asyncio
+import secrets
 from dataclasses import dataclass
+from decimal import Decimal
 
 import asyncpg
 import pytest
@@ -32,8 +34,11 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import hash_password
 from app.main import app
+from app.models.booking import Booking
+from app.models.booking_seat import BookingSeat
 from app.models.cinema import Cinema
 from app.models.cinema_admin import CinemaAdmin
+from app.models.enums import BookingStatus
 
 TEST_PASSWORD = "test-password-123"
 
@@ -68,10 +73,20 @@ async def _ensure_test_database(url: str) -> None:
 
 
 async def _reset_schema(url: str) -> None:
-    """Drop and recreate every table so each run starts from a known schema."""
+    """Start every run from exactly the tables the models describe today.
+
+    The whole schema is dropped instead of calling metadata.drop_all, which only
+    knows today's tables: one removed from the models would linger in the test
+    database and block dropping every table it still references.
+    """
+    # destructive, so refuse anything that is not unmistakably a test database
+    if not make_url(url).database.endswith("_test"):
+        raise RuntimeError(f"refusing to reset non-test database {make_url(url).database!r}")
+
     engine = create_async_engine(url, poolclass=NullPool)
     async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
         await conn.run_sync(SQLModel.metadata.create_all)
     await engine.dispose()
 
@@ -193,3 +208,30 @@ async def tenant_a(session, client) -> Tenant:
 @pytest_asyncio.fixture
 async def tenant_b(session, client) -> Tenant:
     return await _make_tenant(session, client, "kino-beta")
+
+
+async def sell_seats(session, *, cinema_id: int, showtime_id: int, seat_ids) -> int:
+    """Record a confirmed booking for `seat_ids` and return its id.
+
+    Written straight to the database rather than through a booking flow: one
+    bookings row plus one booking_seats row per seat, the shape a sale has.
+    """
+    booking = Booking(
+        cinema_id=cinema_id,
+        showtime_id=showtime_id,
+        reference=secrets.token_hex(4),
+        guest_email="guest@kino-alpha.de",
+        status=BookingStatus.confirmed,
+        total_price=Decimal("10.00") * len(seat_ids),
+    )
+    session.add(booking)
+    await session.flush()  # assigns booking.id
+
+    session.add_all(
+        [
+            BookingSeat(booking_id=booking.id, showtime_id=showtime_id, seat_id=seat_id)
+            for seat_id in seat_ids
+        ]
+    )
+    await session.commit()
+    return booking.id

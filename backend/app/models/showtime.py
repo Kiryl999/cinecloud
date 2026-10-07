@@ -23,4 +23,3 @@ class Showtime(SQLModel, table=True):
     hall: Optional["Hall"] = Relationship(back_populates="showtimes")
 
     bookings: List["Booking"] = Relationship(back_populates="showtime")
-    showtime_seats: List["ShowtimeSeat"] = Relationship(back_populates="showtime")

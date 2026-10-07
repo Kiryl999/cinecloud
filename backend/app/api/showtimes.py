@@ -1,14 +1,14 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import exists
 from sqlmodel import select
 
 from app.api.deps import DbSession, TenantId
 from app.api.scheduling import ensure_slot_is_free, lock_schedule
 from app.api.tenant_scope import get_owned_or_404
+from app.models.booking import Booking
 from app.models.hall import Hall
 from app.models.movie import Movie
-from app.models.seat import Seat
 from app.models.showtime import Showtime
-from app.models.showtime_seat import ShowtimeSeat
 from app.schemas.showtime import ShowtimeCreate, ShowtimeRead, ShowtimeUpdate
 
 router = APIRouter(prefix="/showtimes", tags=["showtimes"])
@@ -35,17 +35,6 @@ async def create_showtime(payload: ShowtimeCreate, db: DbSession, tenant_id: Ten
 
     showtime = Showtime(**payload.model_dump(), cinema_id=tenant_id)
     db.add(showtime)
-    await db.flush()  # assigns showtime.id without committing yet
-
-    # materialise one seat instance per hall seat - this is the Saalplan that
-    # the booking flow will later hold and book against
-    seat_ids = (
-        await db.execute(select(Seat.id).where(Seat.hall_id == payload.hall_id))
-    ).scalars().all()
-    db.add_all(
-        [ShowtimeSeat(showtime_id=showtime.id, seat_id=seat_id) for seat_id in seat_ids]
-    )
-
     await db.commit()
     await db.refresh(showtime)
     return showtime
@@ -72,9 +61,9 @@ async def get_showtime(showtime_id: int, db: DbSession, tenant_id: TenantId):
 async def update_showtime(
     showtime_id: int, payload: ShowtimeUpdate, db: DbSession, tenant_id: TenantId
 ):
-    # hall_id is intentionally not updatable: the showtime_seats are already
-    # materialised against the current hall, and moving the showtime would
-    # orphan them together with any holds or bookings attached.
+    # hall_id is intentionally not updatable: seats already sold or held for
+    # this showtime are seats of the current hall, and moving the showtime
+    # would leave them pointing at a hall it no longer plays in.
     changes = payload.model_dump(exclude_unset=True)
 
     # a new start time or a movie with a different duration moves the slot
@@ -112,12 +101,15 @@ async def delete_showtime(showtime_id: int, db: DbSession, tenant_id: TenantId):
     showtime = await get_owned_or_404(
         db, Showtime, showtime_id, tenant_id, name="Showtime"
     )
-    seats = (
-        await db.execute(
-            select(ShowtimeSeat).where(ShowtimeSeat.showtime_id == showtime_id)
+
+    # same reasoning as for movies and halls: SQLAlchemy would try to null the
+    # showtime_id of every booking and fail on the NOT NULL column with a 500,
+    # and deleting sold tickets along with the showtime is no option either
+    if await db.scalar(select(exists().where(Booking.showtime_id == showtime_id))):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Showtime already has bookings",
         )
-    ).scalars().all()
-    for seat in seats:
-        await db.delete(seat)
+
     await db.delete(showtime)
     await db.commit()

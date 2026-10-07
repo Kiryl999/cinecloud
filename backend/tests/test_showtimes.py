@@ -9,11 +9,8 @@ ones: a hall shows one film at a time, followed by a turnaround.
 import asyncio
 from datetime import datetime, timedelta
 
-from sqlalchemy import func
-from sqlmodel import select
-
 from app.api.scheduling import TURNAROUND_MINUTES
-from app.models.showtime_seat import ShowtimeSeat
+from tests.conftest import sell_seats
 
 MOVIE = {
     "title": "Arrival",
@@ -53,22 +50,18 @@ def _at(minutes: int) -> str:
 SLOT_MINUTES = MOVIE["duration_minutes"] + TURNAROUND_MINUTES
 
 
-async def test_create_materialises_one_seat_per_hall_seat(client, session, tenant_a):
-    """The showtime_seats rows are the Saalplan the booking flow will act on."""
-    payload = _payload(
-        await _movie_id(client, tenant_a), await _hall_id(client, tenant_a)
+async def test_create_schedules_into_the_callers_cinema(client, tenant_a):
+    movie_id = await _movie_id(client, tenant_a)
+    hall_id = await _hall_id(client, tenant_a)
+
+    response = await client.post(
+        "/showtimes/", json=_payload(movie_id, hall_id), headers=tenant_a.headers
     )
 
-    response = await client.post("/showtimes/", json=payload, headers=tenant_a.headers)
     assert response.status_code == 201
-    showtime_id = response.json()["id"]
-
-    count = await session.execute(
-        select(func.count())
-        .select_from(ShowtimeSeat)
-        .where(ShowtimeSeat.showtime_id == showtime_id)
-    )
-    assert count.scalar_one() == HALL["rows"] * HALL["seats_per_row"]
+    body = response.json()
+    assert body["cinema_id"] == tenant_a.cinema_id
+    assert (body["movie_id"], body["hall_id"]) == (movie_id, hall_id)
 
 
 async def test_cannot_schedule_onto_foreign_movie(client, tenant_a, tenant_b):
@@ -183,6 +176,50 @@ async def test_patch_cannot_point_at_a_foreign_movie(client, tenant_a, tenant_b)
 async def test_endpoints_require_authentication(client):
     assert (await client.get("/showtimes/")).status_code == 401
 
+
+async def test_showtime_with_bookings_cannot_be_deleted(client, session, tenant_a):
+    """409 rather than a 500 - and sold tickets must never vanish with it."""
+    hall_id = await _hall_id(client, tenant_a)
+    showtime_id = (
+        await client.post(
+            "/showtimes/",
+            json=_payload(await _movie_id(client, tenant_a), hall_id),
+            headers=tenant_a.headers,
+        )
+    ).json()["id"]
+    seats = (await client.get(f"/halls/{hall_id}", headers=tenant_a.headers)).json()["seats"]
+    await sell_seats(
+        session,
+        cinema_id=tenant_a.cinema_id,
+        showtime_id=showtime_id,
+        seat_ids=[seats[0]["id"]],
+    )
+
+    response = await client.delete(f"/showtimes/{showtime_id}", headers=tenant_a.headers)
+
+    assert response.status_code == 409
+    assert (
+        await client.get(f"/showtimes/{showtime_id}", headers=tenant_a.headers)
+    ).status_code == 200
+
+
+async def test_showtime_without_bookings_can_be_deleted(client, tenant_a):
+    showtime_id = (
+        await client.post(
+            "/showtimes/",
+            json=_payload(
+                await _movie_id(client, tenant_a), await _hall_id(client, tenant_a)
+            ),
+            headers=tenant_a.headers,
+        )
+    ).json()["id"]
+
+    assert (
+        await client.delete(f"/showtimes/{showtime_id}", headers=tenant_a.headers)
+    ).status_code == 204
+    assert (
+        await client.get(f"/showtimes/{showtime_id}", headers=tenant_a.headers)
+    ).status_code == 404
 
 # --- scheduling ---------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field, Relationship
-from typing import List, Optional
+from typing import Optional
 
 class Seat(SQLModel, table=True):
     __tablename__ = "seats"
@@ -15,4 +15,3 @@ class Seat(SQLModel, table=True):
     seat_number: int
 
     hall: Optional["Hall"] = Relationship(back_populates="seats")
-    showtime_seats: List["ShowtimeSeat"] = Relationship(back_populates="seat")

@@ -9,11 +9,10 @@ erDiagram
     Halls ||--o{ Showtimes : hosts
     Movies ||--o{ Showtimes : "shown as"
 
-    Showtimes ||--o{ ShowtimeSeats : has
-    Seats ||--o{ ShowtimeSeats : "instantiated as"
-
     Showtimes ||--o{ Bookings : "booked in"
-    Bookings ||--|{ ShowtimeSeats : reserves
+    Bookings ||--|{ BookingSeats : contains
+    Seats ||--o{ BookingSeats : "sold as"
+    Showtimes ||--o{ BookingSeats : sells
 
     Cinemas {
         int id PK
@@ -49,7 +48,7 @@ erDiagram
     Seats {
         int id PK
         int hall_id FK
-        int row_number
+        int row_number "UNIQUE (hall_id, row_number, seat_number)"
         int seat_number
     }
 
@@ -62,21 +61,19 @@ erDiagram
         decimal ticket_price
     }
 
-    ShowtimeSeats {
-        int id PK
-        int showtime_id FK
-        int booking_id FK
-        string status
-        datetime held_until
-    }
-
     Bookings {
         int id PK
         int cinema_id FK
-        int showtime_id FK
+        int showtime_id FK "UNIQUE (id, showtime_id) as target for BookingSeats"
         string reference UK
         string guest_email
         string status
         decimal total_price
         datetime created_at
+    }
+
+    BookingSeats {
+        int booking_id PK, FK "FK (booking_id, showtime_id) to Bookings"
+        int seat_id PK, FK
+        int showtime_id FK "UNIQUE (showtime_id, seat_id): sold at most once"
     }

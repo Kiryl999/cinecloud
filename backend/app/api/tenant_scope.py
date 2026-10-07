@@ -15,8 +15,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
-# only models carrying a cinema_id discriminator can be scoped directly
-# seats and showtime_seats reach their tenant through hall / showtime instead
+# only models carrying a cinema_id discriminator can be scoped directly;
+# seats and booking_seats reach their tenant through hall / booking instead
 T = TypeVar("T", bound=SQLModel)
 
 
