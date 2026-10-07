@@ -94,6 +94,12 @@ export const authService = {
 export const cinemaService = {
   // all cinemas from backend
   getAll: () => request('/cinemas/'),
+  get: (slug) => request(`/cinemas/${encodeURIComponent(slug)}`),
+  /** Upcoming showtimes of one cinema, each with its movie and hall. */
+  showtimes: (slug) => request(`/cinemas/${encodeURIComponent(slug)}/showtimes`),
+  /** One showtime including the current state of every seat. */
+  showtime: (slug, showtimeId) =>
+    request(`/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}`),
 };
 
 export const movieService = {

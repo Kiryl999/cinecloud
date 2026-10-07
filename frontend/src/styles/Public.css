@@ -1,0 +1,326 @@
+/* Visitor pages: cinema list, programme and seat map. Built on the tokens from
+   theme.css, like the landing and admin pages. */
+
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  background: var(--marquee);
+}
+
+.site-header__logo {
+  font-family: "Fraunces", serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.site-header__link {
+  font-size: 0.9rem;
+  color: var(--paper);
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.site-header__link:hover {
+  opacity: 1;
+}
+
+.page__body {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
+}
+
+.page__body h1 {
+  font-family: "Fraunces", serif;
+  font-size: 2.25rem;
+  margin-bottom: 2rem;
+}
+
+.page__eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 0.5rem;
+}
+
+.page__back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+  opacity: 0.7;
+  text-decoration: none;
+}
+
+.page__back:hover {
+  opacity: 1;
+}
+
+.page__status {
+  opacity: 0.7;
+}
+
+.page__error {
+  color: var(--danger);
+  margin-bottom: 1rem;
+}
+
+/* ---------- Cinema list ---------- */
+.cinema-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+}
+
+.cinema-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.cinema-card:hover {
+  border-color: var(--amber);
+  transform: translateY(-2px);
+}
+
+.cinema-card__name {
+  font-family: "Fraunces", serif;
+  font-size: 1.35rem;
+}
+
+.cinema-card__action {
+  font-size: 0.85rem;
+  color: var(--amber);
+}
+
+/* ---------- Programme ---------- */
+.film {
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--rule);
+}
+
+.film h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.film__meta {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-bottom: 0.75rem;
+}
+
+.film__description {
+  max-width: 40rem;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.film__day {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.film__date {
+  flex: 0 0 7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.slots {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.slot:hover {
+  border-color: var(--amber);
+}
+
+.slot__time {
+  font-weight: 600;
+}
+
+.slot__hall {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+/* ---------- Seat map ---------- */
+.seatmap {
+  margin-bottom: 2rem;
+}
+
+.seatmap__screen {
+  max-width: 28rem;
+  margin: 0 auto 2rem;
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-top: 3px solid var(--marquee);
+  border-radius: 50% 50% 0 0 / 1rem 1rem 0 0;
+  opacity: 0.7;
+}
+
+/* A wide hall must stay scrollable to its first seat. Centering the rows with
+   flexbox would clip the left edge on overflow; auto margins do not. */
+.seatmap__scroll {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.seatmap__rows {
+  width: max-content;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.seatmap__row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.seatmap__label {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.seat {
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem 0.35rem 0.2rem 0.2rem;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.seat--free:hover {
+  border-color: var(--amber);
+}
+
+.seat--chosen {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--marquee);
+  font-weight: 600;
+}
+
+.seat--taken {
+  background: var(--rule);
+  border-color: var(--rule);
+  color: transparent;
+  cursor: not-allowed;
+}
+
+.seat:focus-visible {
+  outline: 2px solid var(--marquee);
+  outline-offset: 1px;
+}
+
+.seatmap__legend {
+  list-style: none;
+  padding: 0;
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  font-size: 0.8rem;
+}
+
+.seatmap__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.seatmap__legend .seat {
+  width: 1rem;
+  height: 1rem;
+  cursor: default;
+}
+
+.selection {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.selection__seats {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.selection__total {
+  font-family: "Fraunces", serif;
+  font-size: 1.25rem;
+}
+
+@media (max-width: 40rem) {
+  .page__body {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .film__day {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .film__date {
+    flex: none;
+  }
+
+  .seat {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+}
