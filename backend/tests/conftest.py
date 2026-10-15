@@ -8,6 +8,10 @@ would let tests pass that production would fail.
 The database name is derived from the configured DATABASE_URL with a `_test`
 suffix, so no credentials are duplicated into the repository.
 
+Redis is real as well - Lua scripts and Pub/Sub are exactly what a fake would
+get subtly wrong. Tests use logical database 15 of the configured Redis and
+flush it around every test; development data in database 0 is never touched.
+
 Event loops matter here. asyncpg binds a connection to the loop that opened it,
 and on Windows a connection outliving its loop dies with WinError 64. Every
 fixture below is therefore function-scoped, and the one-off database setup runs
@@ -16,13 +20,16 @@ inside its own throw-away loop.
 
 import asyncio
 import secrets
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from decimal import Decimal
+from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -32,6 +39,7 @@ from sqlmodel import SQLModel
 import app.models  # noqa: F401  -- registers every model with the mapper
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.redis import get_redis
 from app.core.security import hash_password
 from app.main import app
 from app.models.booking import Booking
@@ -41,6 +49,7 @@ from app.models.cinema_admin import CinemaAdmin
 from app.models.enums import BookingStatus
 
 TEST_PASSWORD = "test-password-123"
+TEST_REDIS_DB = 15
 
 
 def _test_url() -> str:
@@ -107,7 +116,7 @@ async def engine(database_url):
 
 
 @pytest_asyncio.fixture
-async def session(engine) -> AsyncSession:
+async def session(engine) -> AsyncIterator[AsyncSession]:
     """One session per test, followed by a full truncate.
 
     Truncating is slightly slower than rolling back a wrapping transaction, but
@@ -123,11 +132,29 @@ async def session(engine) -> AsyncSession:
 
 
 @pytest_asyncio.fixture
-async def client(session) -> AsyncClient:
+async def redis() -> AsyncIterator[Redis]:
+    """An empty Redis database for every test."""
+    url = urlunsplit(urlsplit(settings.redis_url)._replace(path=f"/{TEST_REDIS_DB}"))
+    client = Redis.from_url(url, decode_responses=True)
+
+    # FLUSHDB is destructive - make sure it can only ever hit the test database
+    assert client.connection_pool.connection_kwargs["db"] == TEST_REDIS_DB
+    await client.flushdb()
+    yield client
+    await client.flushdb()
+    await client.aclose()
+
+
+@pytest_asyncio.fixture
+async def client(session, redis) -> AsyncIterator[AsyncClient]:
     async def _override_get_db():
         yield session
 
+    async def _override_get_redis():
+        return redis
+
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_redis] = _override_get_redis
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as c:

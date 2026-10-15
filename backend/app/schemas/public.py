@@ -52,6 +52,8 @@ class SeatState(BaseModel):
     row_number: int
     seat_number: int
     status: SeatStatus
+    # seconds until a hold runs out; set only while the seat is held
+    hold_expires_in: Optional[int] = None
 
 
 class PublicShowtimeDetail(PublicShowtime):

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     database_url: str
     sql_echo: bool = False
 
+    # seat holds and live seat-map updates
+    redis_url: str = "redis://localhost:6379/0"
+
     # authentication
     jwt_secret: str
     jwt_algorithm: str = "HS256"

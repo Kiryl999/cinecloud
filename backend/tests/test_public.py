@@ -151,10 +151,12 @@ async def test_seat_sold_for_another_showtime_is_free_in_this_one(
 
 
 async def test_seat_map_exposes_no_internal_fields(client, tenant_a):
-    """Hold deadlines and booking ids stay on the server."""
+    """Booking ids and hold tokens stay on the server - a token would let anyone book."""
     (showtime_id,) = await _schedule(client, tenant_a, _from_now(days=1))
 
     body = (await client.get(f"/cinemas/kino-alpha/showtimes/{showtime_id}")).json()
 
-    assert set(body["seats"][0]) == {"id", "row_number", "seat_number", "status"}
+    assert set(body["seats"][0]) == {
+        "id", "row_number", "seat_number", "status", "hold_expires_in",
+    }
     assert "cinema_id" not in body
