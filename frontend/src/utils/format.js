@@ -43,3 +43,11 @@ export function formatDuration(minutes) {
   const rest = minutes % 60;
   return hours ? `${hours} h ${rest} min` : `${rest} min`;
 }
+
+/** Remaining time as m:ss, e.g. 9:05. */
+export function formatCountdown(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+export const seatLabel = (seat) => `Row ${seat.row_number} · Seat ${seat.seat_number}`;

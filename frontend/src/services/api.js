@@ -100,6 +100,24 @@ export const cinemaService = {
   /** One showtime including the current state of every seat. */
   showtime: (slug, showtimeId) =>
     request(`/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}`),
+  /** Live seat map as server-sent events - opened with EventSource, not fetch. */
+  seatStreamUrl: (slug, showtimeId) =>
+    `${API_BASE_URL}/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}/seats/stream`,
+};
+
+/* Guest booking. No token: the hold token returned when reserving is the
+   guest's only proof that the held seats are theirs. */
+export const bookingService = {
+  hold: (slug, showtimeId, seatIds) =>
+    request(`/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}/holds`, {
+      method: 'POST',
+      body: { seat_ids: seatIds },
+    }),
+  book: (slug, showtimeId, holdToken, guestEmail) =>
+    request(`/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}/bookings`, {
+      method: 'POST',
+      body: { hold_token: holdToken, guest_email: guestEmail },
+    }),
 };
 
 export const movieService = {

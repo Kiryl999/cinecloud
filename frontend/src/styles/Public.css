@@ -305,6 +305,110 @@
   font-size: 1.25rem;
 }
 
+.selection .button {
+  margin-top: 1rem;
+}
+
+.seatmap__live {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.seatmap__live--off {
+  color: var(--ink);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+/* ---------- Checkout and confirmation ---------- */
+.button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.35rem;
+  background: var(--amber);
+  color: var(--marquee);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--marquee);
+  outline-offset: 2px;
+}
+
+.checkout,
+.confirmation {
+  max-width: 28rem;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.checkout__timer {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 0.35rem;
+  background: var(--paper);
+}
+
+.checkout__seats {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.checkout .selection__total {
+  margin-bottom: 1.5rem;
+}
+
+.checkout label {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.checkout input {
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  color: var(--ink);
+}
+
+.checkout input:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+
+.checkout__note {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.confirmation__reference {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 2rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.25rem;
+}
+
+.confirmation .selection__total {
+  margin: 0.5rem 0 1rem;
+}
+
 @media (max-width: 40rem) {
   .page__body {
     padding: 1.5rem 1rem 3rem;
