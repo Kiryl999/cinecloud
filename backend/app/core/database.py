@@ -1,7 +1,16 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.config import settings
 
-engine = create_async_engine(settings.database_url, echo=settings.sql_echo)
+engine = create_async_engine(
+    settings.database_url,
+    echo=settings.sql_echo,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    # A pooled connection can die unnoticed - a database failover, or an idle
+    # connection dropped by a network hop. Pinging on checkout replaces it
+    # before a request runs into it.
+    pool_pre_ping=True,
+)
 SessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 

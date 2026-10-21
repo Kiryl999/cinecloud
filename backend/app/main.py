@@ -15,6 +15,7 @@ from app.api.health import router as health_router
 from app.api.movies import router as movies_router
 from app.api.showtimes import router as showtimes_router
 from app.core.config import settings
+from app.core.database import engine
 from app.core.redis import redis_client
 
 # uvicorn configures only its own loggers; this makes the application's
@@ -25,7 +26,10 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     yield
+    # a pod being replaced closes its connections instead of leaving them to
+    # time out on the servers
     await redis_client.aclose()
+    await engine.dispose()
 
 
 app = FastAPI(title="CineCloud API", lifespan=lifespan)

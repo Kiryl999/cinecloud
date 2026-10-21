@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # persistence
     database_url: str
     sql_echo: bool = False
+    # Connections per process. With several replicas the sum of
+    # replicas * (pool size + overflow) must stay below max_connections
+    # of the database server.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
 
     # seat holds and live seat-map updates
     redis_url: str = "redis://localhost:6379/0"
