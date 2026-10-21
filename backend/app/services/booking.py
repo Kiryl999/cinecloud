@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.core import metrics
 from app.models.booking import Booking
 from app.models.booking_seat import BookingSeat
 from app.models.enums import BookingStatus, SeatStatus
@@ -78,6 +79,7 @@ async def seat_map(db: AsyncSession, redis: Redis, showtime: Showtime) -> list[S
         # Degrade instead of failing: the map stays usable without holds, and
         # reserving still fails safely because it cannot work without Redis.
         logger.warning("Redis unreachable - seat map of showtime %s shows no holds", showtime.id)
+        metrics.REDIS_FAILURES.labels("seat_map").inc()
         held = {}
 
     def state(row) -> SeatState:
@@ -168,6 +170,7 @@ async def book(
         # The sale is committed and stands. The hold runs out by itself, and
         # until then the seat map prefers the sold state anyway.
         logger.warning("could not release the hold of booking %s", booking.reference)
+        metrics.REDIS_FAILURES.labels("release").inc()
 
     return Sale(booking, seat_ids)
 

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.api.deps import DbSession
 from app.api.public_scope import get_upcoming_showtime_or_404
+from app.core import metrics
 from app.core.database import get_session_factory
 from app.core.redis import RedisClient
 from app.models.showtime import Showtime
@@ -49,6 +50,7 @@ async def seat_events(
     with a fresh snapshot.
     """
     pubsub = redis.pubsub()
+    metrics.SEAT_STREAMS.inc()
     try:
         await pubsub.subscribe(seat_holds.channel(showtime.id))
         # the first message is Redis confirming the subscription
@@ -70,6 +72,7 @@ async def seat_events(
                 # published as JSON already: {"event": "held" | "booked", ...}
                 yield _event("seats", message["data"])
     finally:
+        metrics.SEAT_STREAMS.dec()
         await pubsub.aclose()
 
 
@@ -94,15 +97,18 @@ async def reserve_seats(
     try:
         hold = await booking.reserve(db, redis, showtime, payload.seat_ids)
     except booking.SeatsNotInHall:
+        metrics.SEAT_HOLDS.labels("invalid").inc()
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Seat is not part of this showtime's hall",
         )
     except booking.SeatsUnavailable:
+        metrics.SEAT_HOLDS.labels("unavailable").inc()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Seats already reserved or sold",
         )
+    metrics.SEAT_HOLDS.labels("placed").inc()
     return HoldRead(hold_token=hold.token, seat_ids=hold.seat_ids, expires_in=hold.expires_in)
 
 
@@ -119,13 +125,17 @@ async def book_seats(
     try:
         sale = await booking.book(db, redis, showtime, payload.hold_token, payload.guest_email)
     except booking.HoldExpired:
+        metrics.BOOKINGS.labels("expired").inc()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Reservation expired"
         )
     except booking.SeatsUnavailable:
+        metrics.BOOKINGS.labels("unavailable").inc()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Seats already sold"
         )
+    metrics.BOOKINGS.labels("confirmed").inc()
+    metrics.SEATS_SOLD.inc(len(sale.seat_ids))
 
     # after the response: the guest should not wait for mail delivery
     background.add_task(
