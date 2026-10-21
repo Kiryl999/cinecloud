@@ -1,4 +1,3 @@
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
@@ -17,11 +16,12 @@ from app.api.showtimes import router as showtimes_router
 from app.core import metrics
 from app.core.config import settings
 from app.core.database import engine
+from app.core.logs import RequestLogMiddleware, configure_logging
 from app.core.redis import redis_client
 
-# uvicorn configures only its own loggers; this makes the application's
-# messages (e.g. cinecloud.booking, cinecloud.mail) visible as well
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
+# replaces uvicorn's logging setup, which covers only its own loggers, with
+# one that also shows the application's (e.g. cinecloud.booking)
+configure_logging(settings.log_level, settings.log_format)
 
 
 @asynccontextmanager
@@ -42,6 +42,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# added last, so it wraps everything else and also sees CORS preflights
+app.add_middleware(RequestLogMiddleware)
 
 
 @app.exception_handler(RedisError)
