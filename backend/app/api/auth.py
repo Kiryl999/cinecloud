@@ -9,7 +9,7 @@ from app.core.security import create_access_token, verify_password
 from app.models.cinema_admin import CinemaAdmin
 from app.schemas.auth import AdminRead, Token
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=Token)

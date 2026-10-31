@@ -21,7 +21,7 @@ from app.models.showtime import Showtime
 from app.schemas.booking import BookingCreate, BookingRead, HoldCreate, HoldRead
 from app.services import booking, mail, seat_holds
 
-router = APIRouter(prefix="/cinemas/{slug}/showtimes/{showtime_id}", tags=["booking"])
+router = APIRouter(prefix="/api/cinemas/{slug}/showtimes/{showtime_id}", tags=["booking"])
 
 SessionFactory = Annotated[async_sessionmaker, Depends(get_session_factory)]
 

@@ -16,7 +16,7 @@ from app.services import booking
 
 # The visitor-facing side of the API: no token, the cinema comes from the slug
 # in the path (see public_scope.py).
-router = APIRouter(prefix="/cinemas", tags=["cinemas"])
+router = APIRouter(prefix="/api/cinemas", tags=["cinemas"])
 
 
 @router.get("/", response_model=list[CinemaRead])

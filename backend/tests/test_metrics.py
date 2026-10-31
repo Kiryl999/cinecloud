@@ -28,8 +28,8 @@ def _requests(handler: str, status: str, method: str = "GET") -> float:
 # --- the endpoint and HTTP metrics --------------------------------------------
 
 
-async def test_metrics_are_served_in_prometheus_format(client):
-    response = await client.get("/metrics")
+async def test_metrics_are_served_in_prometheus_format(internal_client):
+    response = await internal_client.get("/metrics")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/plain")
@@ -39,16 +39,16 @@ async def test_metrics_are_served_in_prometheus_format(client):
 
 async def test_requests_are_counted_by_route_template_and_exact_status(client):
     """One series per route rather than per URL, and 404 kept apart from 409."""
-    before = _requests("/cinemas/{slug}", "404")
+    before = _requests("/api/cinemas/{slug}", "404")
 
     await client.get("/cinemas/no-such-cinema")
 
-    assert _requests("/cinemas/{slug}", "404") == before + 1
+    assert _requests("/api/cinemas/{slug}", "404") == before + 1
 
 
-async def test_probes_and_scrapes_are_not_counted(client):
-    await client.get("/health/live")
-    await client.get("/metrics")
+async def test_probes_and_scrapes_are_not_counted(internal_client):
+    await internal_client.get("/health/live")
+    await internal_client.get("/metrics")
 
     assert _requests("/health/live", "200") == 0
     assert _requests("/metrics", "200") == 0

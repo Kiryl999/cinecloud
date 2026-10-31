@@ -156,10 +156,22 @@ async def client(session, redis) -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[get_redis] = _override_get_redis
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=app), base_url="http://test/api"
     ) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def internal_client(client) -> AsyncIterator[AsyncClient]:
+    """For /health and /metrics, which sit outside /api.
+
+    Takes `client` only for the dependency overrides it installs.
+    """
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
+        yield c
 
 
 @pytest_asyncio.fixture

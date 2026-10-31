@@ -9,7 +9,7 @@ from app.models.movie import Movie
 from app.models.showtime import Showtime
 from app.schemas.movie import MovieCreate, MovieRead, MovieUpdate
 
-router = APIRouter(prefix="/movies", tags=["movies"])
+router = APIRouter(prefix="/api/movies", tags=["movies"])
 
 
 @router.post("/", response_model=MovieRead, status_code=status.HTTP_201_CREATED)

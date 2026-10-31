@@ -35,44 +35,44 @@ def _use_session(fake) -> None:
     app.dependency_overrides[get_db] = _override
 
 
-async def test_ready_when_the_database_answers(client):
-    response = await client.get("/health/ready")
+async def test_ready_when_the_database_answers(internal_client):
+    response = await internal_client.get("/health/ready")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-async def test_not_ready_without_the_database(client):
+async def test_not_ready_without_the_database(internal_client):
     _use_session(_BrokenSession())
 
-    response = await client.get("/health/ready")
+    response = await internal_client.get("/health/ready")
 
     assert response.status_code == 503
 
 
-async def test_not_ready_when_the_database_hangs(client, monkeypatch):
+async def test_not_ready_when_the_database_hangs(internal_client, monkeypatch):
     monkeypatch.setattr(health, "READINESS_TIMEOUT_SECONDS", 0.1)
     _use_session(_HangingSession())
 
-    response = await client.get("/health/ready")
+    response = await internal_client.get("/health/ready")
 
     assert response.status_code == 503
 
 
-async def test_still_alive_without_the_database(client):
+async def test_still_alive_without_the_database(internal_client):
     """A restart would not bring the database back - liveness must not ask it."""
     _use_session(_BrokenSession())
 
-    response = await client.get("/health/live")
+    response = await internal_client.get("/health/live")
 
     assert response.status_code == 200
 
 
-async def test_still_ready_without_redis(client):
+async def test_still_ready_without_redis(internal_client):
     unreachable = Redis.from_url("redis://127.0.0.1:1/0", socket_connect_timeout=0.5)
     app.dependency_overrides[get_redis] = lambda: unreachable
     try:
-        response = await client.get("/health/ready")
+        response = await internal_client.get("/health/ready")
     finally:
         await unreachable.aclose()
 

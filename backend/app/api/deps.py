@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.cinema_admin import CinemaAdmin
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 

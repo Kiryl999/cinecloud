@@ -11,7 +11,7 @@ from app.models.movie import Movie
 from app.models.showtime import Showtime
 from app.schemas.showtime import ShowtimeCreate, ShowtimeRead, ShowtimeUpdate
 
-router = APIRouter(prefix="/showtimes", tags=["showtimes"])
+router = APIRouter(prefix="/api/showtimes", tags=["showtimes"])
 
 
 @router.post("/", response_model=ShowtimeRead, status_code=status.HTTP_201_CREATED)

@@ -156,7 +156,7 @@ class RequestLogMiddleware:
                     extra={
                         "method": scope["method"],
                         "path": path,
-                        # the template, e.g. /cinemas/{slug} - None if nothing matched
+                        # the template, e.g. /api/cinemas/{slug} - None if nothing matched
                         "route": getattr(scope.get("route"), "path", None),
                         "status": status,
                         "duration_ms": duration_ms,

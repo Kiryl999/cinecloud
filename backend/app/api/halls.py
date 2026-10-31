@@ -11,7 +11,7 @@ from app.models.seat import Seat
 from app.models.showtime import Showtime
 from app.schemas.hall import HallCreate, HallDetail, HallRead, HallUpdate
 
-router = APIRouter(prefix="/halls", tags=["halls"])
+router = APIRouter(prefix="/api/halls", tags=["halls"])
 
 
 def _as_detail(hall: Hall) -> dict:

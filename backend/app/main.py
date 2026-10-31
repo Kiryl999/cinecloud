@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
 
@@ -35,14 +34,6 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="CineCloud API", lifespan=lifespan)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-# added last, so it wraps everything else and also sees CORS preflights
 app.add_middleware(RequestLogMiddleware)
 
 
@@ -57,6 +48,10 @@ async def redis_unavailable(_: Request, __: RedisError) -> JSONResponse:
     )
 
 
+# Every public router carries /api in its own prefix. The ingress routes only
+# that path, which keeps /health, /metrics and /docs inside the cluster and
+# keeps API paths apart from frontend routes such as /cinemas/:slug. A prefix
+# added here instead would be missing from the route in the access log.
 app.include_router(auth_router)
 app.include_router(cinemas_router)
 app.include_router(booking_router)

@@ -110,17 +110,17 @@ async def test_one_access_line_per_request_with_route_and_status(client, caplog)
 
     (line,) = _access_records(caplog)
     assert line.method == "GET"
-    assert line.path == "/cinemas/no-such-cinema"
-    assert line.route == "/cinemas/{slug}"
+    assert line.path == "/api/cinemas/no-such-cinema"
+    assert line.route == "/api/cinemas/{slug}"
     assert line.status == 404
     assert line.duration_ms >= 0
     assert line.request_id == response.headers["x-request-id"]
 
 
-async def test_probes_and_scrapes_stay_out_of_the_access_log(client, caplog):
+async def test_probes_and_scrapes_stay_out_of_the_access_log(internal_client, caplog):
     caplog.set_level(logging.INFO)
 
-    await client.get("/health/live")
-    await client.get("/metrics")
+    await internal_client.get("/health/live")
+    await internal_client.get("/metrics")
 
     assert _access_records(caplog) == []

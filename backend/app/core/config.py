@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,11 +26,6 @@ class Settings(BaseSettings):
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
-
-    cors_origins: List[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
 
     # logging: text reads better in a terminal, JSON is what a log collector
     # can filter by field - see logs.py
