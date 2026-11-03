@@ -1,0 +1,37 @@
+# Only /api reaches the backend: /health, /metrics and /docs stay inside the
+# cluster (see app/main.py). Every other path belongs to the React app.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cinecloud
+spec:
+  parentRefs:
+    # the Gateway comes from the overlay of each environment
+    - name: cinecloud
+  rules:
+    # A seat-map stream stays open as long as the page does, but Envoy ends
+    # every request after 15 s by default. Only the stream goes without a
+    # timeout; every other /api request keeps it.
+    - matches:
+        - path:
+            type: RegularExpression
+            value: ^/api/cinemas/[^/]+/showtimes/[0-9]+/seats/stream$
+      timeouts:
+        request: 0s
+      backendRefs:
+        - name: backend
+          port: 8000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: backend
+          port: 8000
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend
+          port: 8080

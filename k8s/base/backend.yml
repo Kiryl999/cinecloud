@@ -1,0 +1,93 @@
+# Stateless: any replica can serve any request, and live seat-map updates
+# reach all of them through Redis pub/sub.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+    spec:
+      # the app never talks to the Kubernetes API, so it gets no token for it
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # 5 s preStop pause + up to 10 s for open seat-map streams
+      # (--timeout-graceful-shutdown in the Dockerfile) + closing the pools
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: ghcr.io/kiryl999/cinecloud/backend
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secrets
+          # see app/api/health.py for what each probe checks and why
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+            # above READINESS_TIMEOUT_SECONDS, so a slow database reads as
+            # "not ready" and not as a probe that never answered
+            timeoutSeconds: 3
+          lifecycle:
+            # SIGTERM and the removal from the gateway's endpoints happen at
+            # the same time; the pause keeps the pod answering until the
+            # gateway has stopped sending it requests
+            preStop:
+              sleep:
+                seconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            # the only writable path, for temporary files such as large
+            # form uploads
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: backend
+spec:
+  selector:
+    app.kubernetes.io/name: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

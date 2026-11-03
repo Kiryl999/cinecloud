@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# What every environment shares. An overlay adds the gateway, the data stores
+# and the image tags of its environment.
+
+namespace: cinecloud
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: cinecloud
+    includeTemplates: true
+
+resources:
+  - namespace.yml
+  - backend.yml
+  - frontend.yml
+  - migrate-job.yml
+  - httproute.yml
+
+# The generated name ends in a hash of the content, so a changed setting
+# rolls the backend pods instead of waiting for their next restart.
+configMapGenerator:
+  - name: backend-config
+    literals:
+      - LOG_FORMAT=json
+      - LOG_LEVEL=INFO
