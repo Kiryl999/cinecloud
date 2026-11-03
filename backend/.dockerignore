@@ -1,0 +1,8 @@
+# The Dockerfile copies only what the image needs; this keeps everything else
+# out of the build context, above all .env with real secrets.
+.env
+.env.*
+.venv/
+**/__pycache__/
+.pytest_cache/
+tests/
