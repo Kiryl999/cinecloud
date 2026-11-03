@@ -15,6 +15,7 @@ resources:
   - namespace.yml
   - backend.yml
   - frontend.yml
+  - keycloak.yml
   - migrate-job.yml
   - httproute.yml
 
@@ -25,3 +26,20 @@ configMapGenerator:
     literals:
       - LOG_FORMAT=json
       - LOG_LEVEL=INFO
+      # straight to the Keycloak service; OIDC_ISSUER, the address in the
+      # tokens, is the public one and comes from the overlay
+      - OIDC_JWKS_URL=http://keycloak:8080/auth/realms/cinecloud/protocol/openid-connect/certs
+  - name: keycloak-config
+    literals:
+      - KC_DB=postgres
+      - KC_DB_URL_DATABASE=keycloak
+      # TLS, where there is any, ends at the gateway
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY_HEADERS=xforwarded
+      # one path prefix for everything Keycloak serves, routed by the gateway
+      - KC_HTTP_RELATIVE_PATH=/auth
+      - KC_HEALTH_ENABLED=true
+      - KC_LOG_CONSOLE_OUTPUT=json
+  - name: keycloak-realm
+    files:
+      - cinecloud-realm.json

@@ -17,6 +17,15 @@ configMapGenerator:
     behavior: merge
     literals:
       - REDIS_URL=redis://redis:6379/0
+      - OIDC_ISSUER=http://localhost/auth/realms/cinecloud
+  - name: keycloak-config
+    behavior: merge
+    literals:
+      # the address in the browser, which Keycloak also writes into every
+      # token - localhost rather than 127.0.0.1, which passkeys refuse
+      - KC_HOSTNAME=http://localhost/auth
+      - KC_DB_URL_HOST=postgres
+      - KC_DB_USERNAME=cinecloud
 
 images:
   - name: ghcr.io/kiryl999/cinecloud/backend

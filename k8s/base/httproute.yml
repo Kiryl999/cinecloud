@@ -1,5 +1,6 @@
 # Only /api reaches the backend: /health, /metrics and /docs stay inside the
-# cluster (see app/main.py). Every other path belongs to the React app.
+# cluster (see app/main.py). /auth is Keycloak, on the same origin as the app.
+# Every other path belongs to the React app.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -28,6 +29,15 @@ spec:
       backendRefs:
         - name: backend
           port: 8000
+    # Login pages and token endpoint - and the admin console under
+    # /auth/admin, which a public deployment would keep inside the cluster
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      backendRefs:
+        - name: keycloak
+          port: 8080
     - matches:
         - path:
             type: PathPrefix
