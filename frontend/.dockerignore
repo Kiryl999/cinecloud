@@ -1,0 +1,8 @@
+# node_modules from the Mac holds macOS binaries of vite and oxlint; the image
+# installs its own with npm ci. dist is rebuilt inside the image, and a local
+# .env must not change what the build produces.
+node_modules/
+dist/
+.vite/
+.env
+.env.*
