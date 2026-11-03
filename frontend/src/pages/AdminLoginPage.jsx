@@ -1,78 +1,64 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Admin.css';
 
+/** Entry to the operator area. The credentials are never entered here: the
+    button leads to Keycloak, which signs in with a passkey or a password. */
 function AdminLoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
-  // already signed in - no reason to show the form again
+  // already signed in - no reason to show the page again
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function handleSignIn() {
     setError(null);
-    setSubmitting(true);
+    setRedirecting(true);
 
     try {
-      await login(email, password);
       // back to wherever ProtectedRoute intercepted, otherwise the dashboard
-      navigate(location.state?.from?.pathname ?? '/admin', { replace: true });
-    } catch (err) {
-      setError(err.message);
-      setSubmitting(false);
+      await login(location.state?.from?.pathname ?? '/admin');
+    } catch {
+      // the browser stays here only if Keycloak could not be reached
+      setError('The sign-in service is not reachable. Please try again later.');
+      setRedirecting(false);
     }
   }
 
   return (
     <div className="admin-login">
-      <form className="admin-login__card" onSubmit={handleSubmit}>
+      <div className="admin-login__card">
         <span className="logo">CineCloud</span>
         <span className="eyebrow">Operator area</span>
         <h1>Sign in</h1>
 
-        <label htmlFor="email">E-mail</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          autoComplete="username"
-          required
-          onChange={(event) => setEmail(event.target.value)}
-        />
+        <p className="admin-login__hint">
+          You will be taken to the CineCloud sign-in page. Use the passkey on
+          your device, or your password the first time.
+        </p>
 
-        <label htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          autoComplete="current-password"
-          required
-          onChange={(event) => setPassword(event.target.value)}
-        />
-
-        {/* the backend answers with the same message for unknown e-mail and
-            wrong password, so this never reveals whether an account exists */}
         {error && (
           <p className="admin-login__error" role="alert">
             {error}
           </p>
         )}
 
-        <button type="submit" className="cta" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
+        <button
+          type="button"
+          className="cta"
+          disabled={redirecting}
+          onClick={handleSignIn}
+        >
+          {redirecting ? 'Redirecting…' : 'Sign in'}
         </button>
-      </form>
+      </div>
     </div>
   );
 }

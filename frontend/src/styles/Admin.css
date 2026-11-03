@@ -74,6 +74,13 @@
   cursor: progress;
 }
 
+.admin-login__hint {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
 .admin-login__error {
   color: var(--danger);
   font-size: 0.9rem;

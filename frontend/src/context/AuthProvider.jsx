@@ -1,59 +1,74 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AuthContext } from './authContext';
-import { authService, clearToken, getToken } from '../services/api';
+import { authService } from '../services/api';
+import { completeSignin, userManager } from '../services/oidc';
 
 /* status is deliberately three-valued: "loading" exists so a protected route
-   does not bounce the user to the login page while the stored token is still
-   being verified. */
+   does not bounce the user to the login page while the stored session is
+   still being verified. */
 const LOADING = 'loading';
 const AUTHENTICATED = 'authenticated';
 const ANONYMOUS = 'anonymous';
 
 function AuthProvider({ children }) {
   const [admin, setAdmin] = useState(null);
-  const [status, setStatus] = useState(getToken() ? LOADING : ANONYMOUS);
+  const [status, setStatus] = useState(LOADING);
 
-  // A stored token proves nothing, it may be expired or signed with a rotated
-  // secret. Ask the backend who it belongs to before trusting it.
+  /* Keycloak vouches for the person, the backend for the cinema they manage.
+     Name and e-mail come from the ID token, the cinema from /auth/me. */
+  const loadAdmin = useCallback(async (user) => {
+    try {
+      const data = await authService.me();
+      setAdmin({ ...data, email: user.profile.email });
+      setStatus(AUTHENTICATED);
+    } catch (err) {
+      // 401: the session is over. On 403 it is kept, so that signing out can
+      // tell Keycloak which session to end without asking the user to confirm.
+      if (err.status === 401) await userManager.removeUser();
+      setAdmin(null);
+      setStatus(ANONYMOUS);
+      throw err;
+    }
+  }, []);
+
+  // A stored session proves nothing, its tokens may have run out or the
+  // account may have lost its cinema. Ask the backend before trusting it.
   useEffect(() => {
-    if (!getToken()) return;
-
     let cancelled = false;
-    authService
-      .me()
-      .then((data) => {
-        if (cancelled) return;
-        setAdmin(data);
-        setStatus(AUTHENTICATED);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        clearToken();
-        setAdmin(null);
-        setStatus(ANONYMOUS);
-      });
+
+    userManager.getUser().then((user) => {
+      if (cancelled) return;
+      if (user) {
+        loadAdmin(user).catch(() => {});
+      } else {
+        // on /admin/callback the sign-in may complete first, so only settle
+        // a status nobody has set yet
+        setStatus((current) => (current === LOADING ? ANONYMOUS : current));
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadAdmin]);
 
-  const login = useCallback(async (email, password) => {
-    await authService.login(email, password);
-    const data = await authService.me();
-    setAdmin(data);
-    setStatus(AUTHENTICATED);
-    return data;
-  }, []);
+  /** Leaves for Keycloak's sign-in page; `from` is where to return after. */
+  const login = useCallback(
+    (from) => userManager.signinRedirect({ state: { from } }),
+    [],
+  );
 
-  const logout = useCallback(() => {
-    // The JWT stays valid until it expires. The backend has no denylist yet
-    // so this only forgets the token on this device.
-    clearToken();
-    setAdmin(null);
-    setStatus(ANONYMOUS);
-  }, []);
+  /** Back from Keycloak: redeem the code, then resolve with `from`. */
+  const finishLogin = useCallback(async () => {
+    const user = await completeSignin();
+    await loadAdmin(user);
+    return user.state?.from;
+  }, [loadAdmin]);
+
+  // Ends the session at Keycloak too - otherwise the next "Sign in" would
+  // come straight back signed in, without asking anyone.
+  const logout = useCallback(() => userManager.signoutRedirect(), []);
 
   const value = useMemo(
     () => ({
@@ -62,9 +77,10 @@ function AuthProvider({ children }) {
       isLoading: status === LOADING,
       isAuthenticated: status === AUTHENTICATED,
       login,
+      finishLogin,
       logout,
     }),
-    [admin, status, login, logout],
+    [admin, status, login, finishLogin, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

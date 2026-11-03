@@ -10,6 +10,8 @@ env/
 .env
 .env.*
 !.env.example
+# no secrets: only where `npm run dev` finds the local Keycloak
+!frontend/.env.development
 
 
 backend/alembic/__pycache__/
