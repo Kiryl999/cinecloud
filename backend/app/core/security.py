@@ -1,35 +1,39 @@
-from datetime import datetime, timedelta, timezone
+"""Verification of the access tokens Keycloak issues.
 
-import bcrypt
+The backend never sees a password and never issues a token. Keycloak signs
+each token with a private key; the matching public keys are published as a
+JWK set, and holding those is enough to check a signature.
+"""
+
+import asyncio
+
 import jwt
 
 from app.core.config import settings
 
-# bcrypt only processes the first 72 bytes; longer passwords are rejected
-MAX_PASSWORD_BYTES = 72
+# Keycloak signs with RS256 by default. Fixing the list keeps a token from
+# choosing its own algorithm, e.g. "none".
+ALGORITHMS = ["RS256"]
+
+# Caches the key set and fetches it again for a key id it does not know yet,
+# so a key rotated in Keycloak is picked up without a restart. The short
+# timeout keeps a hanging Keycloak from holding requests for long.
+jwks_client = jwt.PyJWKClient(
+    settings.oidc_jwks_url
+    or f"{settings.oidc_issuer}/protocol/openid-connect/certs",
+    timeout=5,
+)
 
 
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode(), password_hash.encode())
-    except ValueError:
-        return False
-
-
-def create_access_token(admin_id: int, cinema_id: int) -> str:
-    now = datetime.now(timezone.utc)
-    payload = {
-        "sub": str(admin_id),
-        "cinema_id": cinema_id,
-        "iat": now,
-        "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
-    }
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
-
-
-def decode_access_token(token: str) -> dict:
-    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+async def decode_access_token(token: str) -> dict:
+    """Return the claims of a valid token, raise jwt.PyJWTError otherwise."""
+    # a cache miss fetches with blocking urllib, off the event loop
+    signing_key = await asyncio.to_thread(jwks_client.get_signing_key_from_jwt, token)
+    return jwt.decode(
+        token,
+        signing_key,
+        algorithms=ALGORITHMS,
+        audience=settings.oidc_audience,
+        issuer=settings.oidc_issuer,
+        options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+    )

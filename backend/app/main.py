@@ -32,7 +32,16 @@ async def lifespan(_: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="CineCloud API", lifespan=lifespan)
+app = FastAPI(
+    title="CineCloud API",
+    lifespan=lifespan,
+    # "Authorize" in /docs signs in as the frontend does: the realm's public
+    # client, with PKCE instead of a client secret
+    swagger_ui_init_oauth={
+        "clientId": "cinecloud-web",
+        "usePkceWithAuthorizationCodeGrant": True,
+    },
+)
 
 app.add_middleware(RequestLogMiddleware)
 

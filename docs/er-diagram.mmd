@@ -24,8 +24,7 @@ erDiagram
     CinemaAdmins {
         int id PK
         int cinema_id FK
-        string email UK
-        string password_hash
+        string subject UK "Keycloak user id"
         datetime created_at
     }
 

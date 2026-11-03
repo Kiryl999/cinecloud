@@ -43,7 +43,8 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://cinecloud:cinecloud@localhost:5432/cinecloud
       REDIS_URL: redis://localhost:6379/0
-      JWT_SECRET: only-for-ci-not-a-real-secret
+      # never contacted: the tests sign their tokens with a key of their own
+      OIDC_ISSUER: http://localhost:8080/auth/realms/cinecloud
 
     steps:
       - uses: actions/checkout@v7

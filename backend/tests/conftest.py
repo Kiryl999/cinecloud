@@ -12,6 +12,10 @@ Redis is real as well - Lua scripts and Pub/Sub are exactly what a fake would
 get subtly wrong. Tests use logical database 15 of the configured Redis and
 flush it around every test; development data in database 0 is never touched.
 
+Keycloak is the one stand-in. Tests sign their tokens with TEST_SIGNING_KEY,
+and the backend is handed the matching public key instead of downloading
+Keycloak's key set - everything security.py checks still runs for real.
+
 Event loops matter here. asyncpg binds a connection to the loop that opened it,
 and on Windows a connection outliving its loop dies with WinError 64. Every
 fixture below is therefore function-scoped, and the one-off database setup runs
@@ -20,14 +24,18 @@ inside its own throw-away loop.
 
 import asyncio
 import secrets
+import uuid
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from urllib.parse import urlsplit, urlunsplit
 
 import asyncpg
+import jwt
 import pytest
 import pytest_asyncio
+from cryptography.hazmat.primitives.asymmetric import rsa
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from sqlalchemy import text
@@ -40,7 +48,7 @@ import app.models  # noqa: F401  -- registers every model with the mapper
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis
-from app.core.security import hash_password
+from app.core.security import jwks_client
 from app.main import app
 from app.models.booking import Booking
 from app.models.booking_seat import BookingSeat
@@ -48,8 +56,52 @@ from app.models.cinema import Cinema
 from app.models.cinema_admin import CinemaAdmin
 from app.models.enums import BookingStatus
 
-TEST_PASSWORD = "test-password-123"
 TEST_REDIS_DB = 15
+
+TEST_KEY_ID = "test-key"
+TEST_SIGNING_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+TEST_JWKS = {
+    "keys": [
+        {
+            **jwt.algorithms.RSAAlgorithm.to_jwk(
+                TEST_SIGNING_KEY.public_key(), as_dict=True
+            ),
+            "kid": TEST_KEY_ID,
+            "use": "sig",
+            "alg": "RS256",
+        }
+    ]
+}
+
+
+def _issue_token(subject: str, *, key=TEST_SIGNING_KEY, algorithm="RS256", **claims) -> str:
+    """An access token shaped like Keycloak's; `claims` override or add claims."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": settings.oidc_issuer,
+        "aud": [settings.oidc_audience, "account"],
+        "sub": subject,
+        "azp": "cinecloud-web",
+        "iat": now,
+        "exp": now + timedelta(minutes=5),
+        **claims,
+    }
+    return jwt.encode(payload, key, algorithm=algorithm, headers={"kid": TEST_KEY_ID})
+
+
+def bearer(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def issue_token():
+    """Signs tokens with the key the backend trusts during tests.
+
+    A fixture rather than an import: pytest loads this file as `conftest`, and
+    `from tests.conftest import ...` would load it a second time - with a
+    second TEST_SIGNING_KEY that the backend does not trust.
+    """
+    return _issue_token
 
 
 def _test_url() -> str:
@@ -146,7 +198,7 @@ async def redis() -> AsyncIterator[Redis]:
 
 
 @pytest_asyncio.fixture
-async def client(session, redis) -> AsyncIterator[AsyncClient]:
+async def client(session, redis, monkeypatch) -> AsyncIterator[AsyncClient]:
     async def _override_get_db():
         yield session
 
@@ -155,6 +207,7 @@ async def client(session, redis) -> AsyncIterator[AsyncClient]:
 
     app.dependency_overrides[get_db] = _override_get_db
     app.dependency_overrides[get_redis] = _override_get_redis
+    monkeypatch.setattr(jwks_client, "fetch_data", lambda: TEST_JWKS)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test/api"
     ) as c:
@@ -200,53 +253,41 @@ async def session_per_request(engine, client):
 
 @dataclass
 class Tenant:
-    """A cinema plus a logged-in admin belonging to it."""
+    """A cinema plus a signed-in admin belonging to it."""
 
     cinema_id: int
     admin_id: int
-    email: str
+    subject: str
     headers: dict
 
 
-async def _make_tenant(session, client, slug: str) -> Tenant:
+async def _make_tenant(session, slug: str) -> Tenant:
     cinema = Cinema(name=slug.replace("-", " ").title(), slug=slug)
     session.add(cinema)
     await session.flush()
 
-    # a real-looking domain: `.example` and `.test` are reserved names that
-    # Pydantic's EmailStr rejects, which would break the AdminRead response
-    email = f"admin@{slug}.de"
-    admin = CinemaAdmin(
-        cinema_id=cinema.id,
-        email=email,
-        password_hash=hash_password(TEST_PASSWORD),
-    )
+    # what Keycloak would put into `sub` for the admin's account
+    subject = str(uuid.uuid4())
+    admin = CinemaAdmin(cinema_id=cinema.id, subject=subject)
     session.add(admin)
     await session.commit()
-
-    # go through the real login endpoint so the token is obtained exactly the
-    # way a client would obtain it
-    response = await client.post(
-        "/auth/login", data={"username": email, "password": TEST_PASSWORD}
-    )
-    assert response.status_code == 200, response.text
 
     return Tenant(
         cinema_id=cinema.id,
         admin_id=admin.id,
-        email=email,
-        headers={"Authorization": f"Bearer {response.json()['access_token']}"},
+        subject=subject,
+        headers=bearer(_issue_token(subject)),
     )
 
 
 @pytest_asyncio.fixture
-async def tenant_a(session, client) -> Tenant:
-    return await _make_tenant(session, client, "kino-alpha")
+async def tenant_a(session) -> Tenant:
+    return await _make_tenant(session, "kino-alpha")
 
 
 @pytest_asyncio.fixture
-async def tenant_b(session, client) -> Tenant:
-    return await _make_tenant(session, client, "kino-beta")
+async def tenant_b(session) -> Tenant:
+    return await _make_tenant(session, "kino-beta")
 
 
 async def sell_seats(session, *, cinema_id: int, showtime_id: int, seat_ids) -> int:

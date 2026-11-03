@@ -2,14 +2,22 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2AuthorizationCodeBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import decode_access_token
 from app.models.cinema_admin import CinemaAdmin
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# Only reads the bearer token from the request. The URLs are for the
+# "Authorize" button of /docs, which signs in through Keycloak like the
+# frontend does.
+oauth2_scheme = OAuth2AuthorizationCodeBearer(
+    authorizationUrl=f"{settings.oidc_issuer}/protocol/openid-connect/auth",
+    tokenUrl=f"{settings.oidc_issuer}/protocol/openid-connect/token",
+)
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -25,14 +33,29 @@ async def get_current_admin(
     db: DbSession,
 ) -> CinemaAdmin:
     try:
-        payload = decode_access_token(token)
-        admin_id = int(payload["sub"])
-    except (jwt.PyJWTError, KeyError, TypeError, ValueError):
+        payload = await decode_access_token(token)
+    except jwt.PyJWKClientConnectionError:
+        # Keycloak unreachable and its keys not cached yet: the token may well
+        # be valid, so this is an outage, not a failed sign-in
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sign-in is temporarily unavailable",
+        )
+    except jwt.PyJWTError:
         raise _credentials_error
 
-    admin = await db.get(CinemaAdmin, admin_id)
+    # Keycloak only says who signed in. Which cinema that account manages is
+    # recorded here, next to the data it guards.
+    result = await db.execute(
+        select(CinemaAdmin).where(CinemaAdmin.subject == payload["sub"])
+    )
+    admin = result.scalar_one_or_none()
     if admin is None:
-        raise _credentials_error
+        # signed in correctly, just not an admin of any cinema
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account is not linked to a cinema",
+        )
     return admin
 
 
