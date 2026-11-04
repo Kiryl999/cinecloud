@@ -4,7 +4,7 @@
 k8s/
   cluster/minikube/    once per cluster: Gateway API and Envoy Gateway
   base/                the app and Keycloak, shared by every environment
-  overlays/minikube/   the local cluster: PostgreSQL, Redis, the Gateway, local images
+  overlays/minikube/   the local cluster: PostgreSQL, Redis, the Gateway, images from ghcr.io
 ```
 
 ## Minikube
@@ -39,21 +39,20 @@ unset PG_PASSWORD
 
 ### Deploy
 
-The first time, and again after every code change:
+CI builds both images after every push to main, pushes them to ghcr.io and
+commits their tag to `overlays/minikube/images/`. Once that commit is there:
 
 ```sh
-docker build -t cinecloud-backend:dev backend
-docker build -t cinecloud-frontend:dev frontend
-minikube image load cinecloud-backend:dev cinecloud-frontend:dev
+git pull --rebase
 
 # a Job cannot be changed, only replaced
 kubectl -n cinecloud delete job migrate --ignore-not-found
 kubectl apply -k k8s/overlays/minikube
 kubectl -n cinecloud wait --for=condition=complete job/migrate --timeout=5m
-
-# the tag stays "dev", so the pods must be told to load the new image
-kubectl -n cinecloud rollout restart deployment/backend deployment/frontend
 ```
+
+A new tag changes the Deployments, so their pods roll by themselves.
+
 
 On a fresh cluster the first migration attempts fail until PostgreSQL accepts
 connections; the Job retries by itself.
