@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# One run per branch at a time: two runs on main side by side would race for
+# the next version and for the commit with the image tags
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -88,20 +94,18 @@ jobs:
 
       - name: Build
         run: npm run build
-  
-  # Builds both images once the tests pass on main, pushes them to ghcr.io and
-  # points the minikube overlay at them
+
+  # Builds both images once the tests pass on main and pushes them to ghcr.io
   images:
     needs: [backend, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
-    # one run at a time, so two of them never commit tags over each other
-    concurrency:
-      group: images
-      cancel-in-progress: false
+    # for deploy, which writes the same tag into the overlay
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v7
@@ -110,6 +114,7 @@ jobs:
         id: tag
         run: echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      # emulates arm64 for the RUN steps of the backend image
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
 
@@ -139,13 +144,55 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
+  # Tags a new version when the commits since the last one call for it - fix a
+  # patch, feat a minor, a breaking change a major - and publishes its release
+  # notes. Runs before deploy: semantic-release only releases while main is
+  # still the commit it looks at.
+  release:
+    needs: images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # the whole history with its tags, to find the last version and the
+      # commits since
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # the plugins and their order are in .releaserc.json; the preset is not
+      # bundled with semantic-release
+      - name: Release
+        run: npx -p semantic-release@25.0.9 -p conventional-changelog-conventionalcommits@10.4.1 semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Points the minikube overlay at the new images
+  deploy:
+    needs: [images, release]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Point the minikube overlay at the new images
         working-directory: k8s/overlays/minikube/images
         run: |
           kustomize edit set image \
-            ghcr.io/kiryl999/cinecloud/backend:${{ steps.tag.outputs.tag }} \
-            ghcr.io/kiryl999/cinecloud/frontend:${{ steps.tag.outputs.tag }}
+            ghcr.io/kiryl999/cinecloud/backend:${{ needs.images.outputs.tag }} \
+            ghcr.io/kiryl999/cinecloud/frontend:${{ needs.images.outputs.tag }}
 
+      # A newer push to main has a run of its own, which sets newer tags; this
+      # one leaves the overlay alone rather than roll it back
       - name: Commit the new tags
         run: |
           git fetch origin main
@@ -155,6 +202,5 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "deploy: images ${{ steps.tag.outputs.tag }} [skip ci]"
+          git commit -am "deploy: images ${{ needs.images.outputs.tag }} [skip ci]"
           git push origin HEAD:main
-
