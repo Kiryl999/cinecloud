@@ -167,9 +167,10 @@ jobs:
           node-version: 22
 
       # the plugins and their order are in .releaserc.json; the preset is not
-      # bundled with semantic-release
+      # bundled with semantic-release. Version 9 is the one the release notes
+      # generator is tested with - 10 needs a newer changelog writer than it has.
       - name: Release
-        run: npx -p semantic-release@25.0.9 -p conventional-changelog-conventionalcommits@10.4.1 semantic-release
+        run: npx -p semantic-release@25.0.9 -p conventional-changelog-conventionalcommits@9.3.1 semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
