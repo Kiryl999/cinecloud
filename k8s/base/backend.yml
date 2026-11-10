@@ -6,6 +6,9 @@ metadata:
   name: backend
   labels:
     app.kubernetes.io/name: backend
+  annotations:
+    # after the migration (see migrate-job.yml)
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   replicas: 2
   selector:

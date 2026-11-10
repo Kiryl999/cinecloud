@@ -1,12 +1,21 @@
 # Brings the schema up to date with the backend image it runs from. The pod
-# template of a Job cannot be changed, so for a new image the Job is deleted
-# and applied again (see k8s/README.md).
+# template of a Job cannot be changed, so Argo CD runs it as a hook: every
+# sync deletes the Job of the last one and creates it anew.
+#
+# The waves order each sync: everything without one (0) - PostgreSQL, Redis,
+# Keycloak, the frontend, the ConfigMaps - is up before the migration (1),
+# the backend (2) rolls only once it has succeeded, and the Gateway and its
+# route (3) come last.
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: migrate
   labels:
     app.kubernetes.io/name: migrate
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   # on a fresh cluster the first attempts may come before PostgreSQL is up
   backoffLimit: 4

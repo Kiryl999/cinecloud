@@ -2,9 +2,10 @@
 
 ```
 k8s/
-  cluster/minikube/    once per cluster: Gateway API and Envoy Gateway
+  cluster/minikube/    once per cluster: Gateway API, Envoy Gateway and Argo CD
   base/                the app and Keycloak, shared by every environment
   overlays/minikube/   the local cluster: PostgreSQL, Redis, the Gateway, images from ghcr.io
+  apps/minikube/       the Argo CD Application that deploys overlays/minikube
 ```
 
 ## Minikube
@@ -16,6 +17,7 @@ k8s/
 minikube start --cpus 4 --memory 6g
 kubectl apply --server-side -k k8s/cluster/minikube
 kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
+kubectl wait --timeout=5m -n argocd deployment --all --for=condition=Available
 ```
 
 ### Secrets
@@ -39,23 +41,43 @@ unset PG_PASSWORD
 
 ### Deploy
 
-CI builds both images after every push to main, pushes them to ghcr.io and
-commits their tag to `overlays/minikube/images/`. Once that commit is there:
+Argo CD deploys the app from main on GitHub, not from the local checkout.
+Once the secrets are there, hand it the app:
 
 ```sh
-git pull --rebase
-
-# a Job cannot be changed, only replaced
-kubectl -n cinecloud delete job migrate --ignore-not-found
-kubectl apply -k k8s/overlays/minikube
-kubectl -n cinecloud wait --for=condition=complete job/migrate --timeout=5m
+kubectl apply -f k8s/apps/minikube
 ```
 
-A new tag changes the Deployments, so their pods roll by themselves.
+From then on there is nothing to run. CI builds both images after every push
+to main, pushes them to ghcr.io and commits their tag to
+`overlays/minikube/images/`. Argo CD looks at main every two to three minutes
+and syncs what changed: the migration first, then the backend (see
+`base/migrate-job.yml` for the order).
 
+```sh
+kubectl -n argocd get application cinecloud    # SYNC STATUS and HEALTH
+kubectl -n cinecloud get pods
+```
 
-On a fresh cluster the first migration attempts fail until PostgreSQL accepts
-connections; the Job retries by itself.
+HEALTH stays *Progressing* until `minikube tunnel` runs: Argo CD counts the
+Gateway as up only once it has an address.
+
+### Argo CD
+
+The web UI shows every resource of the app, its sync history and the diff
+against git:
+
+```sh
+kubectl -n argocd port-forward svc/argocd-server 8443:443
+```
+
+Then open https://localhost:8443 (a self-signed certificate), user `admin`,
+password:
+
+```sh
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d
+```
 
 ### Open the app
 
@@ -103,6 +125,10 @@ change to the file has to be made in the console as well.
 ### Stop and remove
 
 ```sh
-minikube stop                              # frees the memory, keeps everything
-kubectl delete -k k8s/overlays/minikube    # deletes the namespace: app, secrets and database
+minikube stop                                    # frees the memory, keeps everything
+kubectl -n argocd delete application cinecloud   # deletes the app; secrets and database stay
+kubectl delete namespace cinecloud               # and those as well
 ```
+
+Deleting the app with `kubectl delete -k` would not last: Argo CD puts back
+whatever its Application still lists.

@@ -1,0 +1,31 @@
+# Has Argo CD deploy the minikube overlay of main and keep the cluster in line
+# with it. Applied once by hand, once Argo CD runs (see k8s/README.md).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cinecloud
+  namespace: argocd
+  # deleting the Application deletes what it deployed; without the finalizer
+  # the app would keep running, only no longer managed
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Kiryl999/cinecloud.git
+    targetRevision: main
+    path: k8s/overlays/minikube
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cinecloud
+  syncPolicy:
+    automated:
+      # what is gone from git goes from the cluster too, and changes made by
+      # hand are undone
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Created if missing, but not part of the app: deleting the Application
+      # leaves the namespace alone, with the secrets made by hand and the
+      # database volume
+      - CreateNamespace=true

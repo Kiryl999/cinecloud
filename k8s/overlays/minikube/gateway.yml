@@ -5,6 +5,11 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: cinecloud
+  annotations:
+    # Last: Argo CD counts a Gateway as up only once it has an address, which
+    # here takes `minikube tunnel`. In an earlier wave it would hold back the
+    # migration and the backend until then.
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   gatewayClassName: envoy
   listeners:
