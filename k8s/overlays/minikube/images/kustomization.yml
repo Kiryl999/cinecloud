@@ -2,6 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 images:
 - name: ghcr.io/kiryl999/cinecloud/backend
-  newTag: sha-921ea08
+  newTag: sha-f287927
 - name: ghcr.io/kiryl999/cinecloud/frontend
-  newTag: sha-921ea08
+  newTag: sha-f287927
