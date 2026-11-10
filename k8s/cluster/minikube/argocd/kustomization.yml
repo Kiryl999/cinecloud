@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# no SSO and no sync notifications here, so Dex and the notifications 
+# controller only cost memory
+
+# Argo CD, which keeps the cluster in line with the manifests in git.
+
+# install.yaml names no namespace; the ClusterRoleBindings in it expect argocd
+namespace: argocd
+
+resources:
+  - namespace.yml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.7/manifests/install.yaml
+
+patches:
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-dex-server
+  - patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-notifications-controller
