@@ -4,8 +4,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Admin.css';
 
-/** Entry to the operator area. The credentials are never entered here: the
-    button leads to Keycloak, which signs in with a passkey or a password. */
+/** Entry to the operator area. Nothing is entered here: the button leads to
+    Keycloak, which signs in with a passkey and lets new admins register. */
 function AdminLoginPage() {
   const { isAuthenticated, isLoading, login } = useAuth();
   const location = useLocation();
@@ -40,8 +40,8 @@ function AdminLoginPage() {
         <h1>Sign in</h1>
 
         <p className="admin-login__hint">
-          You will be taken to the CineCloud sign-in page. Use the passkey on
-          your device, or your password the first time.
+          You will be taken to the CineCloud sign-in page. Sign in with your
+          passkey there, or register if you are new.
         </p>
 
         {error && (

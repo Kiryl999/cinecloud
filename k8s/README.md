@@ -83,15 +83,30 @@ The admin console is at http://localhost/auth/admin, user `admin`, password
 
 The realm `cinecloud` is imported from `base/cinecloud-realm.json` on the
 first start only. Keycloak skips the import once the realm exists, so a later
-change to the file has to be made in the console as well.
+change to the file has to be made in the console as well - or Keycloak starts
+over from the file, which deletes every account of the realm:
+
+```sh
+kubectl -n cinecloud exec postgres-0 -- psql -U cinecloud -d postgres -c 'DROP DATABASE keycloak WITH (FORCE)'
+kubectl -n cinecloud delete pod -l app.kubernetes.io/name=keycloak
+```
+
+Admins linked to a cinema then have to register and be linked again.
+
+The file lists all of Keycloak's required actions, since a list there replaces
+Keycloak's own as a whole. The one change: every new account has to register
+a passkey.
 
 ### Add a cinema and its admin
 
-1. In the admin console, switch to the realm **cinecloud**, then *Users* →
-   *Add user*: the e-mail address as username and e-mail, first and last name,
-   *Email verified* on, required user action *Webauthn Register Passwordless*.
-   Under *Credentials*, set a password with *Temporary* on.
-2. Link the account to a new cinema, using the *ID* from its user details:
+Admins have no password, only a passkey.
+
+1. Open http://localhost/admin, choose *Register* on the sign-in page and
+   enter an e-mail address and a name. The browser then creates the passkey,
+   with Windows Hello, Touch ID or a phone. Until the next step the app
+   answers that the account is not linked to a cinema.
+2. Link the account to a new cinema, using its *ID* from the admin console
+   (realm **cinecloud**, *Users*):
 
    ```sh
    kubectl -n cinecloud exec deploy/backend -- python -m scripts.create_tenant \
@@ -101,9 +116,12 @@ change to the file has to be made in the console as well.
 
    A further admin of an existing cinema is linked with
    `python -m scripts.add_admin --slug cineplex-bonn --user-id <ID>`.
-3. The admin signs in at http://localhost/admin with the temporary password,
-   chooses a new one and registers a passkey. From then on the passkey alone
-   is enough.
+3. Open http://localhost/admin again. From then on the passkey signs the
+   admin in.
+
+Anyone who reaches the sign-in page can register, but an account can do
+nothing until it is linked to a cinema. Where others can reach Keycloak,
+registration would be closed and admins invited by e-mail instead.
 
 ### Stop and remove
 
