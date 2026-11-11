@@ -1,9 +1,9 @@
 """Provision a new tenant (cinema) together with its first admin.
 
-Tenants are created by the platform operator, not through a public API,
-so this lives as an operations script rather than an endpoint. The admin's
-account must exist in Keycloak already (see k8s/README.md); further admins
-are added with scripts/add_admin.py.
+Admins usually open their cinema themselves, in the app right after they
+register (POST /api/cinemas/). This is the operator's way to do it for an
+account, e.g. one that exists in Keycloak already (see k8s/README.md);
+further admins are added with scripts/add_admin.py.
 
 Usage:
     python -m scripts.create_tenant --name "Cineplex Bonn" --slug cineplex-bonn \

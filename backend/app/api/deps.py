@@ -28,10 +28,8 @@ _credentials_error = HTTPException(
 )
 
 
-async def get_current_admin(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: DbSession,
-) -> CinemaAdmin:
+async def get_current_subject(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+    """The Keycloak account behind the request, whether it manages a cinema or not."""
     try:
         payload = await decode_access_token(token)
     except jwt.PyJWKClientConnectionError:
@@ -43,11 +41,17 @@ async def get_current_admin(
         )
     except jwt.PyJWTError:
         raise _credentials_error
+    return payload["sub"]
 
+
+CurrentSubject = Annotated[str, Depends(get_current_subject)]
+
+
+async def get_current_admin(subject: CurrentSubject, db: DbSession) -> CinemaAdmin:
     # Keycloak only says who signed in. Which cinema that account manages is
     # recorded here, next to the data it guards.
     result = await db.execute(
-        select(CinemaAdmin).where(CinemaAdmin.subject == payload["sub"])
+        select(CinemaAdmin).where(CinemaAdmin.subject == subject)
     )
     admin = result.scalar_one_or_none()
     if admin is None:

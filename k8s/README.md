@@ -91,37 +91,37 @@ kubectl -n cinecloud exec postgres-0 -- psql -U cinecloud -d postgres -c 'DROP D
 kubectl -n cinecloud delete pod -l app.kubernetes.io/name=keycloak
 ```
 
-Admins linked to a cinema then have to register and be linked again.
+Cinemas keep their data, but their admins' accounts are gone: each admin
+registers again and has the new account linked to the cinema (see below).
 
 The file lists all of Keycloak's required actions, since a list there replaces
 Keycloak's own as a whole. The one change: every new account has to register
 a passkey.
 
-### Add a cinema and its admin
+### Open a cinema
 
 Admins have no password, only a passkey.
 
 1. Open http://localhost/admin, choose *Register* on the sign-in page and
    enter an e-mail address and a name. The browser then creates the passkey,
-   with Windows Hello, Touch ID or a phone. Until the next step the app
-   answers that the account is not linked to a cinema.
-2. Link the account to a new cinema, using its *ID* from the admin console
-   (realm **cinecloud**, *Users*):
+   with Windows Hello, Touch ID or a phone.
+2. The app asks for the cinema's name and its address on the visitor pages,
+   and offers a week of demo programme to start with. Whoever opens a cinema
+   manages it, and an account manages one cinema.
 
-   ```sh
-   kubectl -n cinecloud exec deploy/backend -- python -m scripts.create_tenant \
-     --name "Cineplex Bonn" --slug cineplex-bonn --user-id <ID>
-   kubectl -n cinecloud exec deploy/backend -- python -m scripts.seed_demo --slug cineplex-bonn
-   ```
+From then on the passkey signs the admin in.
 
-   A further admin of an existing cinema is linked with
-   `python -m scripts.add_admin --slug cineplex-bonn --user-id <ID>`.
-3. Open http://localhost/admin again. From then on the passkey signs the
-   admin in.
+A further admin of an existing cinema registers the same way but opens no
+cinema: the page that offers to open one shows the account's ID, which links
+it instead:
 
-Anyone who reaches the sign-in page can register, but an account can do
-nothing until it is linked to a cinema. Where others can reach Keycloak,
-registration would be closed and admins invited by e-mail instead.
+```sh
+kubectl -n cinecloud exec deploy/backend -- python -m scripts.add_admin --slug cineplex-bonn --user-id <ID>
+```
+
+Anyone who reaches the sign-in page can register and open a cinema, which
+then appears on the start page. Where others can reach Keycloak, it would
+verify e-mail addresses first, which takes a mail server.
 
 ### Stop and remove
 

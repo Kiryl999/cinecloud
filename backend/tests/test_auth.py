@@ -20,10 +20,11 @@ async def test_me_returns_the_signed_in_admin(client, tenant_a):
     response = await client.get("/auth/me", headers=tenant_a.headers)
 
     assert response.status_code == 200
-    assert response.json() == {
-        "id": tenant_a.admin_id,
-        "cinema_id": tenant_a.cinema_id,
-    }
+    body = response.json()
+    assert body["id"] == tenant_a.admin_id
+    assert body["cinema_id"] == tenant_a.cinema_id
+    assert body["cinema"]["name"] == "Kino Alpha"
+    assert body["cinema"]["slug"] == "kino-alpha"
 
 
 async def test_me_requires_a_token(client):

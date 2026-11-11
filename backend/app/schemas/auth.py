@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.cinema import CinemaRead
+
 
 class AdminRead(BaseModel):
     """Response schema for admins.
@@ -12,3 +14,5 @@ class AdminRead(BaseModel):
 
     id: int
     cinema_id: int
+    # for the operator area's header and its link to the visitor pages
+    cinema: CinemaRead

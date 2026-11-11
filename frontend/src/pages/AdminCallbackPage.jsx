@@ -21,9 +21,10 @@ function AdminCallbackPage() {
     return <p className="admin-status">Signing you in…</p>;
   }
 
-  /* Signing in again would only return to the same account, since the
-     session at Keycloak is still open - e.g. one not linked to any cinema.
-     Signing out ends it, so the next attempt can pick another account. */
+  /* An account without a cinema is no error, it goes on to /admin/setup.
+     This is the rest: Keycloak or the backend unreachable, or a code that
+     was redeemed already. Signing out ends the session at Keycloak, so the
+     next attempt starts from scratch. */
   return (
     <div className="admin-login">
       <div className="admin-login__card">

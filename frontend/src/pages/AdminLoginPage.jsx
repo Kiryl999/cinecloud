@@ -7,7 +7,7 @@ import '../styles/Admin.css';
 /** Entry to the operator area. Nothing is entered here: the button leads to
     Keycloak, which signs in with a passkey and lets new admins register. */
 function AdminLoginPage() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { isAuthenticated, isUnlinked, isLoading, login } = useAuth();
   const location = useLocation();
 
   const [error, setError] = useState(null);
@@ -16,6 +16,9 @@ function AdminLoginPage() {
   // already signed in - no reason to show the page again
   if (!isLoading && isAuthenticated) {
     return <Navigate to="/admin" replace />;
+  }
+  if (!isLoading && isUnlinked) {
+    return <Navigate to="/admin/setup" replace />;
   }
 
   async function handleSignIn() {

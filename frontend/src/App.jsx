@@ -9,6 +9,7 @@ import ShowtimePage from "./pages/ShowtimePage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminCallbackPage from "./pages/AdminCallbackPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminSetupPage from "./pages/AdminSetupPage";
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
           <Route path="/admin/login" element={<AdminLoginPage />} />
           {/* registered as redirect URI of the cinecloud-web client */}
           <Route path="/admin/callback" element={<AdminCallbackPage />} />
+          {/* a new account opens its cinema here */}
+          <Route path="/admin/setup" element={<AdminSetupPage />} />
           <Route
             path="/admin"
             element={

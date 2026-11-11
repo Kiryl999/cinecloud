@@ -4,29 +4,38 @@ import { AuthContext } from './authContext';
 import { authService } from '../services/api';
 import { completeSignin, userManager } from '../services/oidc';
 
-/* status is deliberately three-valued: "loading" exists so a protected route
-   does not bounce the user to the login page while the stored session is
-   still being verified. */
+/* "loading" exists so a protected route does not bounce the user to the login
+   page while the stored session is still being verified. "unlinked" is an
+   account signed in at Keycloak that manages no cinema yet - typically one
+   that has just registered, and opens its cinema next. */
 const LOADING = 'loading';
 const AUTHENTICATED = 'authenticated';
+const UNLINKED = 'unlinked';
 const ANONYMOUS = 'anonymous';
 
 function AuthProvider({ children }) {
+  // the Keycloak account, from the ID token: who is signed in
+  const [account, setAccount] = useState(null);
+  // the backend's record of it: which cinema that account manages
   const [admin, setAdmin] = useState(null);
   const [status, setStatus] = useState(LOADING);
 
-  /* Keycloak vouches for the person, the backend for the cinema they manage.
-     Name and e-mail come from the ID token, the cinema from /auth/me. */
   const loadAdmin = useCallback(async (user) => {
+    setAccount({ id: user.profile.sub, email: user.profile.email });
     try {
-      const data = await authService.me();
-      setAdmin({ ...data, email: user.profile.email });
+      setAdmin(await authService.me());
       setStatus(AUTHENTICATED);
     } catch (err) {
-      // 401: the session is over. On 403 it is kept, so that signing out can
-      // tell Keycloak which session to end without asking the user to confirm.
-      if (err.status === 401) await userManager.removeUser();
       setAdmin(null);
+      // Signed in, but no cinema yet. The session is kept: the account opens
+      // its cinema with it, or signs out without Keycloak asking to confirm.
+      if (err.status === 403) {
+        setStatus(UNLINKED);
+        return;
+      }
+      // 401: the session is over
+      if (err.status === 401) await userManager.removeUser();
+      setAccount(null);
       setStatus(ANONYMOUS);
       throw err;
     }
@@ -66,21 +75,30 @@ function AuthProvider({ children }) {
     return user.state?.from;
   }, [loadAdmin]);
 
+  /** Asks the backend again, e.g. once the account has opened its cinema. */
+  const reload = useCallback(async () => {
+    const user = await userManager.getUser();
+    if (user) await loadAdmin(user);
+  }, [loadAdmin]);
+
   // Ends the session at Keycloak too - otherwise the next "Sign in" would
   // come straight back signed in, without asking anyone.
   const logout = useCallback(() => userManager.signoutRedirect(), []);
 
   const value = useMemo(
     () => ({
+      account,
       admin,
       status,
       isLoading: status === LOADING,
       isAuthenticated: status === AUTHENTICATED,
+      isUnlinked: status === UNLINKED,
       login,
       finishLogin,
+      reload,
       logout,
     }),
-    [admin, status, login, finishLogin, logout],
+    [account, admin, status, login, finishLogin, reload, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

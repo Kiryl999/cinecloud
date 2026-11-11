@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
 import { hallService, movieService, showtimeService } from '../services/api';
@@ -33,15 +34,16 @@ function useOverview() {
 }
 
 function AdminDashboardPage() {
-  const { admin, logout } = useAuth();
+  const { account, admin, logout } = useAuth();
   const { counts, error } = useOverview();
+  const cinema = admin?.cinema;
 
   return (
     <div className="admin">
       <header className="admin__bar">
         <span className="logo">CineCloud</span>
         <div className="admin__identity">
-          <span>{admin?.email}</span>
+          <span>Signed in as {account?.email}</span>
           <button type="button" onClick={logout}>
             Sign out
           </button>
@@ -49,7 +51,7 @@ function AdminDashboardPage() {
       </header>
 
       <main className="admin__body">
-        <span className="eyebrow">Cinema #{admin?.cinema_id}</span>
+        <span className="eyebrow">{cinema?.name}</span>
         <h1>Dashboard</h1>
 
         {error && <p className="admin-login__error">{error}</p>}
@@ -68,6 +70,15 @@ function AdminDashboardPage() {
             <h2>Showtimes</h2>
           </article>
         </div>
+
+        {cinema && (
+          <p className="admin__public">
+            Visitors find your cinema at{' '}
+            <Link to={`/cinemas/${cinema.slug}`}>
+              {window.location.host}/cinemas/{cinema.slug}
+            </Link>
+          </p>
+        )}
 
         <p className="admin-status">
           Managing these is the next step - the API endpoints already exist.

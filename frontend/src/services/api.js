@@ -2,11 +2,13 @@ import { getAccessToken } from './oidc';
 
 const API_BASE_URL = '/api';
 
-/** FastAPI reports failures as {"detail": "..."} - fall back if it does not. */
+/** FastAPI reports failures as {"detail": "..."}, and a request that fails
+    validation (422) with a list of them - fall back if neither. */
 async function errorMessage(response, fallback) {
   try {
     const body = await response.json();
     if (typeof body.detail === 'string') return body.detail;
+    if (Array.isArray(body.detail) && body.detail[0]?.msg) return body.detail[0].msg;
   } catch {
     // response had no JSON body
   }
@@ -56,6 +58,9 @@ export const authService = {
 export const cinemaService = {
   // all cinemas from backend
   getAll: () => request('/cinemas/'),
+  /** Opens a cinema managed by the signed-in account, which must manage none
+      yet. `cinema` is {name, slug, demo_programme}. */
+  open: (cinema) => request('/cinemas/', { method: 'POST', body: cinema, auth: true }),
   get: (slug) => request(`/cinemas/${encodeURIComponent(slug)}`),
   /** Upcoming showtimes of one cinema, each with its movie and hall. */
   showtimes: (slug) => request(`/cinemas/${encodeURIComponent(slug)}/showtimes`),
