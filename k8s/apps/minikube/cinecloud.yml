@@ -26,6 +26,5 @@ spec:
       selfHeal: true
     syncOptions:
       # Created if missing, but not part of the app: deleting the Application
-      # leaves the namespace alone, with the secrets made by hand and the
-      # database volume
+      # leaves the namespace alone, and with it the database volume
       - CreateNamespace=true

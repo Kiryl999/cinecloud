@@ -27,6 +27,27 @@ configMapGenerator:
       - KC_DB_URL_HOST=postgres
       - KC_DB_USERNAME=cinecloud
 
+# Fixed passwords, in plain text and public with the repo, so that the cluster
+# comes up without a step by hand. Acceptable only because nothing but this
+# machine reaches it; an environment others can reach keeps its secrets out
+# of git.
+secretGenerator:
+  - name: postgres-secrets
+    literals:
+      # read only when PostgreSQL sets up an empty volume: a change here does
+      # not reach a database that already exists
+      - POSTGRES_PASSWORD=local-only
+  - name: backend-secrets
+    literals:
+      - DATABASE_URL=postgresql+asyncpg://cinecloud:local-only@postgres:5432/cinecloud
+  - name: keycloak-secrets
+    literals:
+      # Keycloak keeps its data in its own database on the same server
+      - KC_DB_PASSWORD=local-only
+      # the admin console, see k8s/README.md
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+
 # the image tags, which CI writes after every push to main
 components:
   - images

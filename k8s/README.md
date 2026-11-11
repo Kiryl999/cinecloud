@@ -20,29 +20,16 @@ kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for
 kubectl wait --timeout=5m -n argocd deployment --all --for=condition=Available
 ```
 
-### Secrets
+### Passwords
 
-Created once by hand; they never go into git.
-
-```sh
-kubectl create namespace cinecloud
-PG_PASSWORD=$(openssl rand -hex 24)
-kubectl -n cinecloud create secret generic postgres-secrets \
-  --from-literal=POSTGRES_PASSWORD="$PG_PASSWORD"
-kubectl -n cinecloud create secret generic backend-secrets \
-  --from-literal=DATABASE_URL="postgresql+asyncpg://cinecloud:$PG_PASSWORD@postgres:5432/cinecloud"
-# Keycloak keeps its data in its own database on the same server
-kubectl -n cinecloud create secret generic keycloak-secrets \
-  --from-literal=KC_DB_PASSWORD="$PG_PASSWORD" \
-  --from-literal=KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-  --from-literal=KC_BOOTSTRAP_ADMIN_PASSWORD="$(openssl rand -hex 16)"
-unset PG_PASSWORD
-```
+There are none to make: the overlay brings fixed ones, in plain text in
+`overlays/minikube/kustomization.yml`. That is fine for a cluster that only
+this machine reaches, and only for that.
 
 ### Deploy
 
-Argo CD deploys the app from main on GitHub, not from the local checkout.
-Once the secrets are there, hand it the app:
+Argo CD deploys the app from main on GitHub, not from the local checkout,
+and creates the namespace `cinecloud` for it. Hand it the app:
 
 ```sh
 kubectl apply -f k8s/apps/minikube
@@ -91,12 +78,8 @@ On its first start Keycloak takes about a minute before the sign-in works.
 
 ### Keycloak
 
-The admin console is at http://localhost/auth/admin, user `admin`, password:
-
-```sh
-kubectl -n cinecloud get secret keycloak-secrets \
-  -o jsonpath='{.data.KC_BOOTSTRAP_ADMIN_PASSWORD}' | base64 -d
-```
+The admin console is at http://localhost/auth/admin, user `admin`, password
+`admin`.
 
 The realm `cinecloud` is imported from `base/cinecloud-realm.json` on the
 first start only. Keycloak skips the import once the realm exists, so a later
@@ -126,8 +109,8 @@ change to the file has to be made in the console as well.
 
 ```sh
 minikube stop                                    # frees the memory, keeps everything
-kubectl -n argocd delete application cinecloud   # deletes the app; secrets and database stay
-kubectl delete namespace cinecloud               # and those as well
+kubectl -n argocd delete application cinecloud   # deletes the app; the database stays
+kubectl delete namespace cinecloud               # and that as well
 ```
 
 Deleting the app with `kubectl delete -k` would not last: Argo CD puts back

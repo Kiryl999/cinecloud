@@ -11,8 +11,9 @@ labels:
       app.kubernetes.io/part-of: cinecloud
     includeTemplates: true
 
-# No Namespace: it holds the secrets made by hand and outlives the app, so it
-# is created by hand as well (see k8s/README.md)
+# No Namespace: it outlives the app, so that deleting the app keeps the
+# database volume. On minikube Argo CD creates it (see
+# k8s/apps/minikube/cinecloud.yml).
 resources:
   - backend.yml
   - frontend.yml
