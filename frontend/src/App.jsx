@@ -12,6 +12,8 @@ import AdminCallbackPage from "./pages/AdminCallbackPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AdminSetupPage from "./pages/AdminSetupPage";
 import AdminShowtimesPage from "./pages/AdminShowtimesPage";
+import AdminShowtimePage from "./pages/AdminShowtimePage";
+import AdminBookingsPage from "./pages/AdminBookingsPage";
 import AdminMoviesPage from "./pages/AdminMoviesPage";
 import AdminHallsPage from "./pages/AdminHallsPage";
 
@@ -45,6 +47,8 @@ function App() {
           >
             <Route index element={<AdminDashboardPage />} />
             <Route path="showtimes" element={<AdminShowtimesPage />} />
+            <Route path="showtimes/:showtimeId" element={<AdminShowtimePage />} />
+            <Route path="bookings" element={<AdminBookingsPage />} />
             <Route path="movies" element={<AdminMoviesPage />} />
             <Route path="halls" element={<AdminHallsPage />} />
           </Route>

@@ -120,7 +120,8 @@ function AdminShowtimesPage() {
       <h1>Showtimes</h1>
       <p className="admin__lead">
         Your programme, in the local time of the cinema. Upcoming showtimes
-        appear on your visitor page, where they can be booked.
+        appear on your visitor page, where they can be booked. Open one to see
+        its seat map and who booked what.
       </p>
 
       <div className="admin-manage">
@@ -231,12 +232,15 @@ function AdminShowtimesPage() {
                         }
                       >
                         <div className="admin-row__main">
-                          <strong>
+                          <Link className="admin-row__title" to={`/admin/showtimes/${showtime.id}`}>
                             {formatTime(showtime.start_time)} {movie.title}
-                          </strong>
+                          </Link>
                           <span className="admin-row__meta">
                             until {formatTime(endOf(showtime, movieById))} · {hall.name} ·{' '}
-                            {formatPrice(showtime.ticket_price)}
+                            {formatPrice(showtime.ticket_price)} ·{' '}
+                            <span className={showtime.seats_sold > 0 ? 'admin-row__sold' : undefined}>
+                              {showtime.seats_sold} / {hall.seat_count} sold
+                            </span>
                           </span>
                         </div>
                         <div className="admin-row__actions">

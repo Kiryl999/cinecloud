@@ -106,5 +106,23 @@ export const movieService = adminResource('/movies');
     only the name can change. */
 export const hallService = adminResource('/halls');
 
-/** A showtime stays in its hall, so `hall_id` can only be set on create. */
-export const showtimeService = adminResource('/showtimes');
+/** A showtime stays in its hall, so `hall_id` can only be set on create.
+    The list counts each showtime's `seats_sold`. */
+export const showtimeService = {
+  ...adminResource('/showtimes'),
+  /** Every seat with its state - booked, held or available - also for a
+      showtime that has started. */
+  seats: (id) => request(`/showtimes/${id}/seats`, { auth: true }),
+};
+
+/** The cinema's side of the guests' bookings, newest first. `q` is a
+    booking reference or part of an e-mail address. */
+export const salesService = {
+  bookings: ({ showtimeId, q, limit } = {}) => {
+    const params = new URLSearchParams();
+    if (showtimeId !== undefined) params.set('showtime_id', showtimeId);
+    if (q) params.set('q', q);
+    if (limit !== undefined) params.set('limit', limit);
+    return request(`/bookings/?${params}`, { auth: true });
+  },
+};

@@ -23,6 +23,7 @@ function AdminDashboardPage() {
   // the API sends them ordered by start time
   const upcoming = programme.showtimes.filter((s) => new Date(s.start_time) > now);
   const step = nextStep(programme);
+  const ticketsSold = upcoming.reduce((sum, showtime) => sum + showtime.seats_sold, 0);
 
   return (
     <>
@@ -32,6 +33,10 @@ function AdminDashboardPage() {
         <Link className="admin__card" to="/admin/showtimes">
           <span className="admin__count">{upcoming.length}</span>
           <h2>Upcoming showtimes</h2>
+        </Link>
+        <Link className="admin__card" to="/admin/bookings">
+          <span className="admin__count">{ticketsSold}</span>
+          <h2>Tickets sold for them</h2>
         </Link>
         <Link className="admin__card" to="/admin/movies">
           <span className="admin__count">{programme.movies.length}</span>
@@ -68,10 +73,13 @@ function AdminDashboardPage() {
               {upcoming.slice(0, 5).map((showtime) => (
                 <li key={showtime.id} className="admin-row">
                   <div className="admin-row__main">
-                    <strong>{programme.movieById.get(showtime.movie_id)?.title}</strong>
+                    <Link className="admin-row__title" to={`/admin/showtimes/${showtime.id}`}>
+                      {programme.movieById.get(showtime.movie_id)?.title}
+                    </Link>
                     <span className="admin-row__meta">
                       {formatDay(showtime.start_time)}, {formatTime(showtime.start_time)} ·{' '}
-                      {programme.hallById.get(showtime.hall_id)?.name}
+                      {programme.hallById.get(showtime.hall_id)?.name} · {showtime.seats_sold} /{' '}
+                      {programme.hallById.get(showtime.hall_id)?.seat_count} sold
                     </span>
                   </div>
                 </li>

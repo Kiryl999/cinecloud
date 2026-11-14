@@ -299,7 +299,8 @@ async def sell_seats(session, *, cinema_id: int, showtime_id: int, seat_ids) -> 
     booking = Booking(
         cinema_id=cinema_id,
         showtime_id=showtime_id,
-        reference=secrets.token_hex(4),
+        # upper case, as the booking flow issues them
+        reference=secrets.token_hex(4).upper(),
         guest_email="guest@kino-alpha.de",
         status=BookingStatus.confirmed,
         total_price=Decimal("10.00") * len(seat_ids),

@@ -8,10 +8,11 @@ function groupByRow(seats) {
 }
 
 /**
- * The hall as a grid of seat buttons. `stateOf(seat)` returns "free",
- * "chosen" or "taken"; taken seats cannot be clicked.
+ * The hall as a grid of seat buttons. `stateOf(seat)` names the seat's state,
+ * which is also its CSS modifier: "free", "chosen" or "taken" on the visitor
+ * pages. Seats in one of `disabledStates` cannot be clicked.
  */
-function SeatGrid({ seats, stateOf, onToggle }) {
+function SeatGrid({ seats, stateOf, onToggle, disabledStates = ["taken"] }) {
   return (
     // A wide hall must stay scrollable to its first seat, hence the wrapper
     <div className="seatmap__scroll">
@@ -26,7 +27,7 @@ function SeatGrid({ seats, stateOf, onToggle }) {
                   key={seat.id}
                   type="button"
                   className={`seat seat--${state}`}
-                  disabled={state === "taken"}
+                  disabled={disabledStates.includes(state)}
                   aria-pressed={state === "chosen"}
                   aria-label={`Row ${row}, seat ${seat.seat_number}, ${state}`}
                   onClick={() => onToggle(seat)}

@@ -1,14 +1,17 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
 import { useProgrammeLoader } from '../hooks/useProgramme';
 import '../styles/Admin.css';
 
 /** Frame of the operator area: who is signed in, the sections, and the
-    cinema's programme, loaded once for all of them (see useProgramme). */
+    cinema's programme, shared by all of them (see useProgramme). */
 function AdminLayout() {
   const { account, admin, logout } = useAuth();
-  const { programme, error, refresh } = useProgrammeLoader();
+  // Loaded anew on every change of section: guests keep booking meanwhile,
+  // and the seats sold should not stay as they were at sign-in.
+  const { pathname } = useLocation();
+  const { programme, error, refresh } = useProgrammeLoader(pathname);
 
   return (
     <div className="admin">
@@ -27,6 +30,7 @@ function AdminLayout() {
           Overview
         </NavLink>
         <NavLink to="/admin/showtimes">Showtimes</NavLink>
+        <NavLink to="/admin/bookings">Bookings</NavLink>
         <NavLink to="/admin/movies">Movies</NavLink>
         <NavLink to="/admin/halls">Halls</NavLink>
       </nav>

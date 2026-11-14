@@ -38,3 +38,9 @@ class ShowtimeRead(BaseModel):
     hall_id: int
     start_time: datetime
     ticket_price: Decimal
+
+
+class ShowtimeOverview(ShowtimeRead):
+    """A showtime in the admin's list, with how many of its seats are sold."""
+
+    seats_sold: int

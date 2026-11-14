@@ -7,6 +7,7 @@ from redis.exceptions import RedisError
 import app.models  # noqa: F401  -- registers all models with the SQLModel mapper
 from app.api.auth import router as auth_router
 from app.api.booking import router as booking_router
+from app.api.bookings import router as bookings_router
 from app.api.cinemas import router as cinemas_router
 from app.api.halls import router as halls_router
 from app.api.health import router as health_router
@@ -64,6 +65,7 @@ async def redis_unavailable(_: Request, __: RedisError) -> JSONResponse:
 app.include_router(auth_router)
 app.include_router(cinemas_router)
 app.include_router(booking_router)
+app.include_router(bookings_router)
 app.include_router(halls_router)
 app.include_router(health_router)
 app.include_router(movies_router)

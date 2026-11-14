@@ -1,15 +1,24 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import exists
+from sqlalchemy import exists, func
 from sqlmodel import select
 
 from app.api.deps import DbSession, TenantId
 from app.api.scheduling import ensure_slot_is_free, lock_schedule
 from app.api.tenant_scope import get_owned_or_404
+from app.core.redis import RedisClient
 from app.models.booking import Booking
+from app.models.booking_seat import BookingSeat
 from app.models.hall import Hall
 from app.models.movie import Movie
 from app.models.showtime import Showtime
-from app.schemas.showtime import ShowtimeCreate, ShowtimeRead, ShowtimeUpdate
+from app.schemas.public import SeatState
+from app.schemas.showtime import (
+    ShowtimeCreate,
+    ShowtimeOverview,
+    ShowtimeRead,
+    ShowtimeUpdate,
+)
+from app.services import booking
 
 router = APIRouter(prefix="/api/showtimes", tags=["showtimes"])
 
@@ -40,14 +49,28 @@ async def create_showtime(payload: ShowtimeCreate, db: DbSession, tenant_id: Ten
     return showtime
 
 
-@router.get("/", response_model=list[ShowtimeRead])
+@router.get("/", response_model=list[ShowtimeOverview])
 async def list_showtimes(db: DbSession, tenant_id: TenantId):
+    # counted per showtime inside the one query, through the unique index on
+    # (showtime_id, seat_id) that guards against double-booking anyway
+    seats_sold = (
+        select(func.count())
+        .select_from(BookingSeat)
+        .where(BookingSeat.showtime_id == Showtime.id)
+        .correlate(Showtime)
+        .scalar_subquery()
+    )
     result = await db.execute(
-        select(Showtime)
+        select(Showtime, seats_sold)
         .where(Showtime.cinema_id == tenant_id)
         .order_by(Showtime.start_time)
     )
-    return result.scalars().all()
+    return [
+        ShowtimeOverview(
+            **ShowtimeRead.model_validate(showtime).model_dump(), seats_sold=sold
+        )
+        for showtime, sold in result.all()
+    ]
 
 
 @router.get("/{showtime_id}", response_model=ShowtimeRead)
@@ -55,6 +78,19 @@ async def get_showtime(showtime_id: int, db: DbSession, tenant_id: TenantId):
     return await get_owned_or_404(
         db, Showtime, showtime_id, tenant_id, name="Showtime"
     )
+
+
+@router.get("/{showtime_id}/seats", response_model=list[SeatState])
+async def get_seat_map(
+    showtime_id: int, db: DbSession, redis: RedisClient, tenant_id: TenantId
+):
+    """Every seat with its state: sold, held by a guest who is checking out,
+    or free. Unlike the visitor's seat map, also for a showtime that has
+    started."""
+    showtime = await get_owned_or_404(
+        db, Showtime, showtime_id, tenant_id, name="Showtime"
+    )
+    return await booking.seat_map(db, redis, showtime)
 
 
 @router.patch("/{showtime_id}", response_model=ShowtimeRead)

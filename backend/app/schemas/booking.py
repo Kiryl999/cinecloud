@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, EmailStr, Field
@@ -32,3 +33,21 @@ class BookingRead(BaseModel):
     total_price: Decimal
     guest_email: EmailStr
     status: BookingStatus
+
+
+class BookedSeat(BaseModel):
+    id: int
+    row_number: int
+    seat_number: int
+
+
+class BookingOverview(BaseModel):
+    """A booking as the cinema's admin sees it."""
+
+    reference: str
+    showtime_id: int
+    guest_email: str
+    status: BookingStatus
+    total_price: Decimal
+    created_at: datetime
+    seats: list[BookedSeat]

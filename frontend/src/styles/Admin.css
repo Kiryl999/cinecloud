@@ -388,8 +388,24 @@
   border-top: 1px solid var(--rule);
 }
 
-.admin-row--editing {
+.admin-row--editing,
+.admin-row--selected {
   background: color-mix(in srgb, var(--amber) 14%, #fff);
+}
+
+.admin-row__title {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-row__title:hover {
+  text-decoration: underline;
+}
+
+.admin-row__sold {
+  color: var(--success);
+  font-weight: 600;
 }
 
 .admin-row--past {
@@ -451,6 +467,107 @@
 
 .admin-toggle input {
   accent-color: var(--amber);
+}
+
+.admin-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-toolbar button {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--ink);
+}
+
+.admin-search {
+  flex: 1;
+  max-width: 28rem;
+}
+
+.admin-search input {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.admin-search input:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+
+/* ---------- Bookings and seat map ---------- */
+.admin__back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--ink);
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+.admin__back:hover {
+  opacity: 1;
+}
+
+.admin__count small {
+  font-size: 1.1rem;
+  opacity: 0.6;
+}
+
+.admin-booking__reference {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: 0.05em;
+}
+
+.admin-booking__showtime {
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.admin-seatmap {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.admin-seatmap .seat:disabled {
+  cursor: default;
+}
+
+.admin-seatmap .seat--free:hover {
+  border-color: var(--rule);
+}
+
+.seat--sold {
+  background: var(--marquee);
+  border-color: var(--marquee);
+  color: var(--paper);
+}
+
+.seat--held {
+  background: color-mix(in srgb, var(--amber) 18%, #fff);
+  border: 1px dashed var(--amber);
+}
+
+.admin-seatmap .seatmap__legend {
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.admin-seatmap__hint {
+  text-align: center;
 }
 
 .admin-empty {

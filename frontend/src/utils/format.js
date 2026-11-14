@@ -91,3 +91,16 @@ export function formatCountdown(ms) {
 }
 
 export const seatLabel = (seat) => `Row ${seat.row_number} · Seat ${seat.seat_number}`;
+
+/** Several seats, one group per row: "Row 2: 11 · Row 4: 4, 5, 7". */
+export function seatsByRow(seats) {
+  const rows = new Map();
+  const ordered = [...seats].sort(
+    (a, b) => a.row_number - b.row_number || a.seat_number - b.seat_number,
+  );
+  for (const seat of ordered) {
+    if (!rows.has(seat.row_number)) rows.set(seat.row_number, []);
+    rows.get(seat.row_number).push(seat.seat_number);
+  }
+  return [...rows].map(([row, numbers]) => `Row ${row}: ${numbers.join(", ")}`).join(" · ");
+}
