@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# What CineCloud adds to the monitoring stack. The stack itself is a Helm
+# chart, configured in values.yml; Argo CD deploys both together (see
+# k8s/apps/minikube/monitoring.yml).
+
+namespace: monitoring
+
+resources:
+  - scrape.yml
+  - alerts.yml
+
+configMapGenerator:
+  # Grafana's sidecar loads every ConfigMap with this label as a dashboard
+  - name: cinecloud-dashboard
+    files:
+      - dashboards/cinecloud.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      # Updated in place. A new name for every change would have the sidecar
+      # write the new file and then delete it again along with the old one.
+      disableNameSuffixHash: true

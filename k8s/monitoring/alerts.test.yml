@@ -1,0 +1,206 @@
+# Unit tests for the rules in alerts.yml, run by CI with
+#   promtool test rules alerts.test.yml
+# against the rule groups of the PrometheusRule, which CI writes to a plain
+# rule file first (see .github/workflows/ci.yml).
+#
+# Each case feeds made-up series in and names the alerts that must fire at a
+# given time - or, with exp_alerts: [], that none may. An alert that is still
+# pending (shorter than its `for`) counts as not firing.
+
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: a deployment without a ready pod
+    interval: 1m
+    input_series:
+      - series: 'kube_deployment_spec_replicas{namespace="cinecloud", deployment="backend"}'
+        values: "2x10"
+      - series: 'kube_deployment_status_replicas_available{namespace="cinecloud", deployment="backend"}'
+        values: "2 0x9"
+      # scaled to zero on purpose, which is no outage
+      - series: 'kube_deployment_spec_replicas{namespace="cinecloud", deployment="mailpit"}'
+        values: "0x10"
+      - series: 'kube_deployment_status_replicas_available{namespace="cinecloud", deployment="mailpit"}'
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: CineCloudComponentDown
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: CineCloudComponentDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              namespace: cinecloud
+              deployment: backend
+            exp_annotations:
+              summary: No pod of backend is ready
+              description: backend in cinecloud has had no ready pod for 2 minutes.
+
+  - name: a stateful set without a ready pod
+    interval: 1m
+    input_series:
+      - series: 'kube_statefulset_replicas{namespace="cinecloud", statefulset="postgres"}'
+        values: "1x10"
+      - series: 'kube_statefulset_status_replicas_ready{namespace="cinecloud", statefulset="postgres"}'
+        values: "0x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: CineCloudComponentDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              namespace: cinecloud
+              statefulset: postgres
+            exp_annotations:
+              summary: No pod of postgres is ready
+              description: postgres in cinecloud has had no ready pod for 2 minutes.
+
+  - name: a fifth of the requests fail
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="cinecloud", job="backend", handler="/api/cinemas/", method="GET", status="200"}'
+        values: "0+8x15"
+      - series: 'http_requests_total{namespace="cinecloud", job="backend", handler="/api/cinemas/", method="GET", status="500"}'
+        values: "0+2x15"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: CineCloudHighErrorRate
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: CineCloudHighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: 20% of API requests fail
+              description: More than 5 % of the backend's responses have been server errors (5xx) for 5 minutes.
+
+  - name: one error on a quiet day
+    interval: 1m
+    input_series:
+      - series: 'http_requests_total{namespace="cinecloud", job="backend", handler="/api/cinemas/", method="GET", status="200"}'
+        values: "0 1 2x13"
+      - series: 'http_requests_total{namespace="cinecloud", job="backend", handler="/api/cinemas/", method="GET", status="500"}'
+        values: "0 0 1x13"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CineCloudHighErrorRate
+        exp_alerts: []
+
+  - name: requests that take over a second
+    interval: 1m
+    input_series:
+      - series: 'http_request_duration_highr_seconds_bucket{namespace="cinecloud", job="backend", le="0.5"}'
+        values: "0x20"
+      - series: 'http_request_duration_highr_seconds_bucket{namespace="cinecloud", job="backend", le="1.0"}'
+        values: "0x20"
+      - series: 'http_request_duration_highr_seconds_bucket{namespace="cinecloud", job="backend", le="2.0"}'
+        values: "0+10x20"
+      - series: 'http_request_duration_highr_seconds_bucket{namespace="cinecloud", job="backend", le="+Inf"}'
+        values: "0+10x20"
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: CineCloudSlowResponses
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: CineCloudSlowResponses
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: API requests are slow
+              description: For 10 minutes, 1 in 20 API requests has taken longer than a second. Right now the slowest 5 % take 1.95s or more.
+
+  - name: Redis fails on every request
+    interval: 1m
+    input_series:
+      - series: 'cinecloud_redis_failures_total{namespace="cinecloud", job="backend", context="request"}'
+        values: "0+1x10"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: CineCloudRedisFailing
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: CineCloudRedisFailing
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Redis is failing, guests cannot reserve seats
+              description: About 5 Redis operations of the backend failed in the last 5 minutes.
+
+  - name: a single Redis failure
+    interval: 1m
+    input_series:
+      - series: 'cinecloud_redis_failures_total{namespace="cinecloud", job="backend", context="seat_map"}'
+        values: "0 1x10"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: CineCloudRedisFailing
+        exp_alerts: []
+
+  - name: a confirmation that could not be sent
+    interval: 1m
+    input_series:
+      - series: 'cinecloud_booking_mails_total{namespace="cinecloud", job="backend", outcome="sent"}'
+        values: "0+3x20"
+      - series: 'cinecloud_booking_mails_total{namespace="cinecloud", job="backend", outcome="failed"}'
+        values: "0 0 1x19"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: CineCloudBookingMailsFailing
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: CineCloudBookingMailsFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Booking confirmations are not being sent
+              description: At least one booking confirmation could not be handed to the mail server in the last 15 minutes. The booking is saved; the backend log names its reference.
+      # resolved once the failure is more than 15 minutes old
+      - eval_time: 20m
+        alertname: CineCloudBookingMailsFailing
+        exp_alerts: []
+
+  - name: an app that stays out of sync
+    interval: 1m
+    input_series:
+      - series: 'argocd_app_info{name="cinecloud", namespace="argocd", sync_status="OutOfSync", health_status="Healthy"}'
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ArgoCDAppOutOfSync
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: ArgoCDAppOutOfSync
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              name: cinecloud
+            exp_annotations:
+              summary: Argo CD app cinecloud is out of sync with git
+              description: cinecloud has differed from main for 15 minutes. The Argo CD UI shows the last sync and the diff.
+
+  - name: a degraded app, and one waiting for minikube tunnel
+    interval: 1m
+    input_series:
+      - series: 'argocd_app_info{name="cinecloud", namespace="argocd", sync_status="Synced", health_status="Degraded"}'
+        values: "1x20"
+      - series: 'argocd_app_info{name="monitoring", namespace="argocd", sync_status="Synced", health_status="Progressing"}'
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: ArgoCDAppUnhealthy
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              name: cinecloud
+              health_status: Degraded
+            exp_annotations:
+              summary: Argo CD app cinecloud is Degraded
+              description: Argo CD has counted cinecloud as Degraded for 10 minutes. Its UI shows which resource.

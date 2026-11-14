@@ -5,7 +5,8 @@ k8s/
   cluster/minikube/    once per cluster: Gateway API, Envoy Gateway and Argo CD
   base/                the app and Keycloak, shared by every environment
   overlays/minikube/   the local cluster: PostgreSQL, Redis, Mailpit, the Gateway, images from ghcr.io
-  apps/minikube/       the Argo CD Application that deploys overlays/minikube
+  monitoring/          Prometheus, Alertmanager and Grafana: the chart's settings, CineCloud's alerts and dashboard
+  apps/minikube/       the Argo CD Applications that deploy overlays/minikube and monitoring
 ```
 
 ## Minikube
@@ -13,8 +14,8 @@ k8s/
 ### Once per cluster
 
 ```sh
-# Keycloak alone takes about 700 MB
-minikube start --cpus 4 --memory 6g
+# Keycloak alone takes about 700 MB, the monitoring stack about 1 GB
+minikube start --cpus 4 --memory 8g
 kubectl apply --server-side -k k8s/cluster/minikube
 kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
 kubectl wait --timeout=5m -n argocd deployment --all --for=condition=Available
@@ -23,13 +24,15 @@ kubectl wait --timeout=5m -n argocd deployment --all --for=condition=Available
 ### Passwords
 
 There are none to make: the overlay brings fixed ones, in plain text in
-`overlays/minikube/kustomization.yml`. That is fine for a cluster that only
-this machine reaches, and only for that.
+`overlays/minikube/kustomization.yml`, and so does `monitoring/values.yml` for
+Grafana. That is fine for a cluster that only this machine reaches, and only
+for that.
 
 ### Deploy
 
 Argo CD deploys the app from main on GitHub, not from the local checkout,
-and creates the namespace `cinecloud` for it. Hand it the app:
+and creates the namespace `cinecloud` for it. Hand it the app, and the
+monitoring stack along with it (see *Monitoring* below):
 
 ```sh
 kubectl apply -f k8s/apps/minikube
@@ -42,7 +45,7 @@ and syncs what changed: the migration first, then the backend (see
 `base/migrate-job.yml` for the order).
 
 ```sh
-kubectl -n argocd get application cinecloud    # SYNC STATUS and HEALTH
+kubectl -n argocd get applications    # SYNC STATUS and HEALTH
 kubectl -n cinecloud get pods
 ```
 
@@ -135,7 +138,34 @@ verify e-mail addresses first, which takes a mail server.
 
 No mail leaves the cluster. Booking confirmations go to Mailpit, which keeps
 them and shows them at http://localhost/mail - every guest's mail, whatever
-the address. They are gone when its pod restarts.
+the address, and the alerts of the monitoring stack. They are gone when its
+pod restarts.
+
+### Monitoring
+
+The second Application deploys the chart kube-prometheus-stack into the
+namespace `monitoring`, with the settings in `monitoring/values.yml`:
+Prometheus, which scrapes the cluster and the backend's `/metrics`;
+Alertmanager; and Grafana, which opens on the CineCloud dashboard - traffic,
+bookings and resources - and has the chart's dashboards for Kubernetes beside
+it. Like Argo CD, none of them is routed through the gateway:
+
+```sh
+kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80     # http://localhost:3000, admin / local-only
+kubectl -n monitoring port-forward svc/monitoring-prometheus 9090     # http://localhost:9090
+kubectl -n monitoring port-forward svc/monitoring-alertmanager 9093   # http://localhost:9093
+```
+
+Alertmanager mails the alerts to Mailpit, addressed to ops@cinecloud.local:
+the chart's for the cluster, and CineCloud's own in
+`monitoring/alerts.yml` - a part of the app without a ready pod, server
+errors, slow responses, Redis failing, confirmations not sent, an Argo CD app
+that stays out of sync or unhealthy. CI tests them against the cases in
+`monitoring/alerts.test.yml`. The links in the mails lead to the port-forwards
+above.
+
+Prometheus keeps 15 days of metrics, at most 4 GB, on a volume that outlives
+its pod.
 
 ### Stop and remove
 
@@ -143,6 +173,18 @@ the address. They are gone when its pod restarts.
 minikube stop                                    # frees the memory, keeps everything
 kubectl -n argocd delete application cinecloud   # deletes the app; the database stays
 kubectl delete namespace cinecloud               # and that as well
+kubectl -n argocd delete application monitoring  # the monitoring stack; its metrics stay
+kubectl delete namespace monitoring              # and those as well
+```
+
+Two things of the monitoring stack outlive its Application: the resource types
+of the Prometheus Operator (CRDs), which Argo CD leaves in place, and the
+service in kube-system through which the operator has Prometheus find the
+kubelets, which the operator made itself:
+
+```sh
+kubectl delete crd $(kubectl api-resources --api-group=monitoring.coreos.com -o name)
+kubectl -n kube-system delete service monitoring-kubelet
 ```
 
 Deleting the app with `kubectl delete -k` would not last: Argo CD puts back
