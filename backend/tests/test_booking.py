@@ -16,7 +16,7 @@ from app.api.booking import seat_events
 from app.core.redis import get_redis
 from app.main import app
 from app.models.showtime import Showtime
-from app.services import seat_holds
+from app.services import mail, seat_holds
 from tests.conftest import sell_seats
 
 MOVIE = {"title": "Arrival", "release_year": 2016, "duration_minutes": 116}
@@ -157,6 +157,31 @@ async def test_booking_turns_a_hold_into_a_sale(client, redis, tenant_a, caplog)
     # confirmation sent, without spreading the full address through the logs
     assert sale["reference"] in caplog.text
     assert "anna@kino-alpha.de" not in caplog.text
+
+
+async def test_the_confirmation_names_the_showtime_and_the_seats(client, tenant_a, monkeypatch):
+    url, showtime_id, (s1, *_, s6) = await _showtime(client, tenant_a)
+    token = (await client.post(f"{url}/holds", json={"seat_ids": [s6, s1]})).json()["hold_token"]
+    sent = []
+    monkeypatch.setattr(mail, "send_booking_confirmation", sent.append)
+
+    sale = (
+        await client.post(
+            f"{url}/bookings", json={"hold_token": token, "guest_email": "anna@kino-alpha.de"}
+        )
+    ).json()
+
+    [confirmation] = sent
+    assert confirmation.to == "anna@kino-alpha.de"
+    assert confirmation.reference == sale["reference"]
+    assert (confirmation.cinema, confirmation.movie, confirmation.hall) == (
+        "Kino Alpha", "Arrival", "Saal 1"
+    )
+    showtime = (await client.get(f"/showtimes/{showtime_id}", headers=tenant_a.headers)).json()
+    assert confirmation.starts_at == datetime.fromisoformat(showtime["start_time"])
+    # HALL has 2 rows of 3: the first seat and the last
+    assert sorted(confirmation.seats) == [(1, 1), (2, 3)]
+    assert str(confirmation.total) == "25.00"
 
 
 async def test_booking_with_an_unknown_token_is_409(client, tenant_a):

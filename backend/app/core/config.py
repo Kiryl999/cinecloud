@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     # some other application of the realm is not accepted here
     oidc_audience: str = "cinecloud-api"
 
+    # booking confirmations - see mail.py. No host: they are only logged.
+    smtp_host: str = ""
+    smtp_port: int = 25
+    # a relay on the internet (Amazon SES, a provider's SMTP) wants both;
+    # Mailpit on minikube neither
+    smtp_starttls: bool = False
+    smtp_username: str = ""
+    smtp_password: str = ""
+    mail_from: str = "CineCloud <tickets@cinecloud.local>"
+
     # logging: text reads better in a terminal, JSON is what a log collector
     # can filter by field - see logs.py
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

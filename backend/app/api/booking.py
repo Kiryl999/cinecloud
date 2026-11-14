@@ -11,12 +11,15 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlmodel import select
 
 from app.api.deps import DbSession
 from app.api.public_scope import get_upcoming_showtime_or_404
 from app.core import metrics
 from app.core.database import get_session_factory
 from app.core.redis import RedisClient
+from app.models.cinema import Cinema
+from app.models.seat import Seat
 from app.models.showtime import Showtime
 from app.schemas.booking import BookingCreate, BookingRead, HoldCreate, HoldRead
 from app.services import booking, mail, seat_holds
@@ -137,12 +140,25 @@ async def book_seats(
     metrics.BOOKINGS.labels("confirmed").inc()
     metrics.SEATS_SOLD.inc(len(sale.seat_ids))
 
-    # after the response: the guest should not wait for mail delivery
+    # Read now, while the session is open: the mail goes out after the
+    # response, so the guest does not wait for the mail server. The cinema
+    # costs no query, finding the showtime has put it in the session.
+    cinema = await db.get(Cinema, showtime.cinema_id)
+    seats = await db.execute(
+        select(Seat.row_number, Seat.seat_number).where(Seat.id.in_(sale.seat_ids))
+    )
     background.add_task(
         mail.send_booking_confirmation,
-        to=sale.booking.guest_email,
-        reference=sale.booking.reference,
-        seat_count=len(sale.seat_ids),
+        mail.BookingConfirmation(
+            to=sale.booking.guest_email,
+            reference=sale.booking.reference,
+            cinema=cinema.name,
+            movie=showtime.movie.title,
+            hall=showtime.hall.name,
+            starts_at=showtime.start_time,
+            seats=[(seat.row_number, seat.seat_number) for seat in seats],
+            total=sale.booking.total_price,
+        ),
     )
     return BookingRead(
         reference=sale.booking.reference,

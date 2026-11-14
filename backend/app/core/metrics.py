@@ -29,6 +29,11 @@ BOOKINGS = Counter(
 )
 SEATS_SOLD = Counter("cinecloud_seats_sold", "Seats sold")
 SEAT_STREAMS = Gauge("cinecloud_seat_streams_open", "Live seat-map streams currently open")
+BOOKING_MAILS = Counter(
+    "cinecloud_booking_mails",
+    "Booking confirmations, by what became of them",
+    ["outcome"],  # sent | failed | logged (no mail server configured)
+)
 REDIS_FAILURES = Counter(
     "cinecloud_redis_failures",
     "Redis operations that failed, by what it cost",
@@ -44,6 +49,8 @@ for _outcome in ("placed", "unavailable", "invalid"):
     SEAT_HOLDS.labels(_outcome)
 for _outcome in ("confirmed", "expired", "unavailable"):
     BOOKINGS.labels(_outcome)
+for _outcome in ("sent", "failed", "logged"):
+    BOOKING_MAILS.labels(_outcome)
 for _context in ("request", "seat_map", "release"):
     REDIS_FAILURES.labels(_context)
 

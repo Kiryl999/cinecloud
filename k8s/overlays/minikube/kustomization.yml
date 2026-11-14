@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# The local cluster: PostgreSQL and Redis run inside it. The images come from
-# ghcr.io, tagged by CI in images/.
+# The local cluster: PostgreSQL, Redis and a mail catcher run inside it. The
+# images come from ghcr.io, tagged by CI in images/.
 
 namespace: cinecloud
 
@@ -11,6 +11,7 @@ resources:
   - gateway.yml
   - postgres.yml
   - redis.yml
+  - mailpit.yml
 
 configMapGenerator:
   - name: backend-config
@@ -18,6 +19,9 @@ configMapGenerator:
     literals:
       - REDIS_URL=redis://redis:6379/0
       - OIDC_ISSUER=http://localhost/auth/realms/cinecloud
+      # booking confirmations end up in Mailpit, see mailpit.yml
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
   - name: keycloak-config
     behavior: merge
     literals:

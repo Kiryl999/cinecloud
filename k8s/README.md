@@ -4,7 +4,7 @@
 k8s/
   cluster/minikube/    once per cluster: Gateway API, Envoy Gateway and Argo CD
   base/                the app and Keycloak, shared by every environment
-  overlays/minikube/   the local cluster: PostgreSQL, Redis, the Gateway, images from ghcr.io
+  overlays/minikube/   the local cluster: PostgreSQL, Redis, Mailpit, the Gateway, images from ghcr.io
   apps/minikube/       the Argo CD Application that deploys overlays/minikube
 ```
 
@@ -117,7 +117,7 @@ Admins have no password, only a passkey.
    manages it, and an account manages one cinema.
 
 From then on the passkey signs the admin in, and http://localhost/admin is
-where they add halls and movies and plan showtimes.
+where they add halls and movies, plan showtimes and see what guests booked.
 
 A further admin of an existing cinema registers the same way but opens no
 cinema: the page that offers to open one shows the account's ID, which links
@@ -130,6 +130,12 @@ kubectl -n cinecloud exec deploy/backend -- python -m scripts.add_admin --slug c
 Anyone who reaches the sign-in page can register and open a cinema, which
 then appears on the start page. Where others can reach Keycloak, it would
 verify e-mail addresses first, which takes a mail server.
+
+### Mail
+
+No mail leaves the cluster. Booking confirmations go to Mailpit, which keeps
+them and shows them at http://localhost/mail - every guest's mail, whatever
+the address. They are gone when its pod restarts.
 
 ### Stop and remove
 
