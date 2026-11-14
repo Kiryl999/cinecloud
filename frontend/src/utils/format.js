@@ -44,6 +44,46 @@ export function formatDuration(minutes) {
   return hours ? `${hours} h ${rest} min` : `${rest} min`;
 }
 
+// The parts of the cinema's wall clock, for the datetime inputs below
+const wallClockFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: CINEMA_TIME_ZONE,
+  hourCycle: "h23",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function wallClock(ms) {
+  const parts = Object.fromEntries(
+    wallClockFormat.formatToParts(new Date(ms)).map(({ type, value }) => [type, value]),
+  );
+  return { ...parts, ms: Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) };
+}
+
+/** How far the cinema's clock is ahead of UTC at `ms`, in milliseconds. */
+const offsetAt = (ms) => wallClock(ms).ms - Math.floor(ms / 60000) * 60000;
+
+/** A time from the API as the cinema's clock shows it, in the format of
+    <input type="datetime-local">: "2026-11-14T20:00". */
+export function toDateTimeInput(iso) {
+  const { year, month, day, hour, minute } = wallClock(new Date(iso).getTime());
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+/** The reverse: the moment the cinema's clock shows `value`, as ISO 8601 in
+    UTC, which the API accepts. The browser's own time zone plays no part, so
+    20:00 means 20:00 in the cinema even for an admin abroad. */
+export function fromDateTimeInput(value) {
+  const [year, month, day, hour, minute] = value.split(/[-T:]/).map(Number);
+  const asIfUtc = Date.UTC(year, month - 1, day, hour, minute);
+  // the offset is looked up twice: near a daylight saving change, the one at
+  // `asIfUtc` can differ from the one at the moment it points to
+  const guess = asIfUtc - offsetAt(asIfUtc);
+  return new Date(asIfUtc - offsetAt(guess)).toISOString();
+}
+
 /** Remaining time as m:ss, e.g. 9:05. */
 export function formatCountdown(ms) {
   const seconds = Math.max(0, Math.ceil(ms / 1000));

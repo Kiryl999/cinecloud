@@ -87,14 +87,24 @@ export const bookingService = {
     }),
 };
 
-export const movieService = {
-  list: () => request('/movies/', { auth: true }),
-};
+/** The signed-in admin's own movies, halls or showtimes. The backend takes
+    the cinema from the token, so no request names it. */
+function adminResource(path) {
+  return {
+    list: () => request(`${path}/`, { auth: true }),
+    create: (values) => request(`${path}/`, { method: 'POST', body: values, auth: true }),
+    /** Changes only the fields in `changes`. */
+    update: (id, changes) =>
+      request(`${path}/${id}`, { method: 'PATCH', body: changes, auth: true }),
+    remove: (id) => request(`${path}/${id}`, { method: 'DELETE', auth: true }),
+  };
+}
 
-export const hallService = {
-  list: () => request('/halls/', { auth: true }),
-};
+export const movieService = adminResource('/movies');
 
-export const showtimeService = {
-  list: () => request('/showtimes/', { auth: true }),
-};
+/** Halls are created with `rows` and `seats_per_row`, which then stay fixed:
+    only the name can change. */
+export const hallService = adminResource('/halls');
+
+/** A showtime stays in its hall, so `hall_id` can only be set on create. */
+export const showtimeService = adminResource('/showtimes');

@@ -172,9 +172,11 @@
   word-break: break-all;
 }
 
-/* ---------- Dashboard ---------- */
+/* ---------- Operator area: frame ---------- */
 .admin__bar {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 2rem;
@@ -203,8 +205,39 @@
   color: var(--paper);
 }
 
+.admin__nav {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  overflow-x: auto;
+}
+
+.admin__nav a {
+  padding: 0.9rem 0.75rem;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  color: var(--ink);
+  font-size: 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.admin__nav a:hover {
+  opacity: 1;
+}
+
+.admin__nav a.active {
+  border-bottom-color: var(--amber);
+  font-weight: 600;
+  opacity: 1;
+}
+
 .admin__body {
-  padding: 2.5rem 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 4rem;
 }
 
 .admin__body h1 {
@@ -217,6 +250,38 @@
   color: var(--amber);
 }
 
+.admin__lead {
+  max-width: 40rem;
+  margin: -1.25rem 0 2rem;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+@media (max-width: 40rem) {
+  .admin__bar {
+    padding: 1rem;
+  }
+
+  .admin__nav {
+    padding: 0 0.25rem;
+  }
+
+  .admin__body {
+    padding: 2rem 1rem 3rem;
+  }
+}
+
+/* small caps heading above a list: "Coming up", a day of showtimes */
+.admin__heading {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-bottom: 0.6rem;
+}
+
+/* ---------- Overview ---------- */
 .admin__cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
@@ -229,6 +294,13 @@
   border-radius: 0.5rem;
   padding: 1.5rem;
   background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 150ms ease;
+}
+
+.admin__card:hover {
+  border-color: var(--amber);
 }
 
 .admin__count {
@@ -248,12 +320,265 @@
 }
 
 .admin__public {
-  margin-bottom: 1rem;
+  margin-bottom: 2.5rem;
 }
 
-.admin__public a {
+.admin__public a,
+.admin-empty a {
   color: inherit;
   font-weight: 600;
+}
+
+.admin__next {
+  max-width: 40rem;
+}
+
+/* ---------- Lists with a form beside them ---------- */
+.admin-manage {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* side by side once both fit; the form comes first in the page, so on a
+   phone it sits above the list */
+@media (min-width: 56rem) {
+  .admin-manage {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-areas: "list editor";
+  }
+
+  .admin-manage__list {
+    grid-area: list;
+  }
+
+  .admin-editor {
+    grid-area: editor;
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+.admin-manage__note {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.65;
+}
+
+.admin-list {
+  list-style: none;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+  overflow: hidden;
+}
+
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.admin-row + .admin-row {
+  border-top: 1px solid var(--rule);
+}
+
+.admin-row--editing {
+  background: color-mix(in srgb, var(--amber) 14%, #fff);
+}
+
+.admin-row--past {
+  color: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+.admin-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.admin-row__meta {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.admin-row__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-row__actions button {
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--ink);
+}
+
+.admin-row__actions button:hover {
+  border-color: var(--ink);
+}
+
+.admin-row__actions .admin-row__delete {
+  color: var(--danger);
+}
+
+.admin-row__actions .admin-row__delete:hover {
+  border-color: var(--danger);
+}
+
+.admin-day + .admin-day {
+  margin-top: 1.75rem;
+}
+
+.admin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.admin-toggle input {
+  accent-color: var(--amber);
+}
+
+.admin-empty {
+  padding: 2rem 1.5rem;
+  border: 1px dashed var(--rule);
+  border-radius: 0.5rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ---------- The form ---------- */
+.admin-editor {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.admin-editor h2 {
+  font-family: "Fraunces", serif;
+  font-size: 1.25rem;
+  margin-bottom: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-editor label {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.admin-editor input,
+.admin-editor select,
+.admin-editor textarea {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.admin-editor textarea {
+  resize: vertical;
+}
+
+.admin-editor :is(input, select, textarea):focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 1px;
+}
+
+.admin-editor :is(input, select):disabled {
+  background: var(--paper);
+  cursor: not-allowed;
+}
+
+.admin-editor__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}
+
+.admin-editor__pair > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-editor__hint {
+  margin: -0.4rem 0 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+.admin-editor__notice {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--success);
+}
+
+.admin-editor__notice:empty {
+  display: none;
+}
+
+.admin-editor .admin-login__error {
+  line-height: 1.45;
+}
+
+.admin-editor__buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.admin-editor__buttons button {
+  font: inherit;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  border-radius: 0.35rem;
+}
+
+.admin-editor__buttons .cta {
+  flex: 1;
+  font-weight: 600;
+  border: none;
+  background: var(--amber);
+  color: var(--marquee);
+}
+
+.admin-editor__buttons .cta:hover {
+  background: var(--amber-bright);
+}
+
+.admin-editor__buttons .cta:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.admin-editor__cancel {
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
 }
 
 .admin-status {

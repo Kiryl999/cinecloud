@@ -66,6 +66,13 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d
 ```
 
+PowerShell has no `base64`:
+
+```powershell
+$b64 = kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}'
+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64))
+```
+
 ### Open the app
 
 ```sh
@@ -109,7 +116,8 @@ Admins have no password, only a passkey.
    and offers a week of demo programme to start with. Whoever opens a cinema
    manages it, and an account manages one cinema.
 
-From then on the passkey signs the admin in.
+From then on the passkey signs the admin in, and http://localhost/admin is
+where they add halls and movies and plan showtimes.
 
 A further admin of an existing cinema registers the same way but opens no
 cinema: the page that offers to open one shows the account's ID, which links
