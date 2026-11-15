@@ -31,9 +31,9 @@ HOLD_SECONDS = 10 * 60
 # securing a hold must not become a way to keep seats indefinitely.
 CONFIRM_SECONDS = 60
 
-# All or nothing: if any seat is held, nothing is held. The event is published
-# only on success - a failed attempt changes nothing anyone needs to hear about.
-#   KEYS: seat keys..., token key    ARGV: token, ttl ms, seat list, channel, event
+# All or nothing: if any seat is held, nothing is held. Nobody hears of the
+# hold yet - see announce().
+#   KEYS: seat keys..., token key    ARGV: token, ttl ms, seat list
 _PLACE = """
 for i = 1, #KEYS - 1 do
     if redis.call('EXISTS', KEYS[i]) == 1 then
@@ -44,7 +44,6 @@ for i = 1, #KEYS - 1 do
     redis.call('SET', KEYS[i], ARGV[1], 'PX', ARGV[2])
 end
 redis.call('SET', KEYS[#KEYS], ARGV[3], 'PX', ARGV[2])
-redis.call('PUBLISH', ARGV[4], ARGV[5])
 return 1
 """
 
@@ -68,9 +67,9 @@ end
 return 1
 """
 
-# After the sale is committed: drop the hold and announce the sale. Only keys
+# Drop a hold, and announce what became of its seats, if anything. Only keys
 # that still carry this token are deleted.
-#   KEYS: token key, seat keys...    ARGV: token, channel, event
+#   KEYS: token key, seat keys...    ARGV: token, channel, event (empty: silent)
 _RELEASE = """
 for i = 2, #KEYS do
     if redis.call('GET', KEYS[i]) == ARGV[1] then
@@ -78,7 +77,9 @@ for i = 2, #KEYS do
     end
 end
 redis.call('DEL', KEYS[1])
-redis.call('PUBLISH', ARGV[2], ARGV[3])
+if ARGV[2] ~= '' then
+    redis.call('PUBLISH', ARGV[2], ARGV[3])
+end
 return 1
 """
 
@@ -111,13 +112,27 @@ async def place(redis: Redis, showtime_id: int, seat_ids: list[int]) -> Hold | N
     """Hold every seat in `seat_ids`, or none of them. None if any is taken."""
     # unguessable: whoever presents the token may book the held seats
     token = secrets.token_urlsafe(24)
-    event = json.dumps({"event": "held", "seat_ids": seat_ids, "expires_in": HOLD_SECONDS})
 
     placed = await redis.register_script(_PLACE)(
         keys=[_seat_key(showtime_id, s) for s in seat_ids] + [_token_key(showtime_id, token)],
-        args=[token, HOLD_SECONDS * 1000, _seat_list(seat_ids), channel(showtime_id), event],
+        args=[token, HOLD_SECONDS * 1000, _seat_list(seat_ids)],
     )
     return Hold(token, seat_ids, HOLD_SECONDS) if placed == 1 else None
+
+
+async def announce(redis: Redis, showtime_id: int, hold: Hold) -> None:
+    """Tell the seat streams about a hold once it is known to stand."""
+    event = json.dumps({"event": "held", "seat_ids": hold.seat_ids, "expires_in": hold.expires_in})
+    await redis.publish(channel(showtime_id), event)
+
+
+async def discard(redis: Redis, showtime_id: int, hold: Hold) -> None:
+    """Drop a hold nobody has heard of: its seats turned out to be sold."""
+    await redis.register_script(_RELEASE)(
+        keys=[_token_key(showtime_id, hold.token)]
+        + [_seat_key(showtime_id, s) for s in hold.seat_ids],
+        args=[hold.token, "", ""],
+    )
 
 
 async def secure(redis: Redis, showtime_id: int, token: str) -> list[int] | None:

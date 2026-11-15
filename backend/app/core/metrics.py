@@ -40,6 +40,7 @@ REDIS_FAILURES = Counter(
     # request:   a request failed with 503
     # seat_map:  a seat map went out without holds
     # release:   a sold hold stayed in Redis until its expiry
+    # announce:  a hold reached open seat maps only with their next snapshot
     ["context"],
 )
 
@@ -51,7 +52,7 @@ for _outcome in ("confirmed", "expired", "unavailable"):
     BOOKINGS.labels(_outcome)
 for _outcome in ("sent", "failed", "logged"):
     BOOKING_MAILS.labels(_outcome)
-for _context in ("request", "seat_map", "release"):
+for _context in ("request", "seat_map", "release", "announce"):
     REDIS_FAILURES.labels(_context)
 
 

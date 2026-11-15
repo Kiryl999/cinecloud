@@ -110,19 +110,32 @@ async def reserve(
     if in_hall != len(seat_ids):
         raise SeatsNotInHall()
 
-    # Redis knows nothing about sales, so ask the record of them first. A sale
-    # committed right after this check is still caught when booking.
-    already_sold = await db.scalar(
-        select(func.count())
-        .select_from(BookingSeat)
-        .where(BookingSeat.showtime_id == showtime.id, BookingSeat.seat_id.in_(seat_ids))
-    )
-    if already_sold:
-        raise SeatsUnavailable()
-
     hold = await seat_holds.place(redis, showtime.id, seat_ids)
     if hold is None:
         raise SeatsUnavailable()
+
+    # Redis knows nothing about sales, so ask the record of them - after
+    # holding, not before: a sale is committed before its hold is dropped, so
+    # every sale that beat this hold shows here. Asked first, a sale committed
+    # in between slipped through, as loadtest/rush.js found.
+    try:
+        already_sold = await db.scalar(
+            select(func.count())
+            .select_from(BookingSeat)
+            .where(BookingSeat.showtime_id == showtime.id, BookingSeat.seat_id.in_(seat_ids))
+        )
+        if already_sold:
+            raise SeatsUnavailable()
+    except Exception:
+        await seat_holds.discard(redis, showtime.id, hold)
+        raise
+
+    try:
+        await seat_holds.announce(redis, showtime.id, hold)
+    except RedisError:
+        # The hold stands; open seat maps show it with their next snapshot.
+        logger.warning("could not announce a hold of showtime %s", showtime.id)
+        metrics.REDIS_FAILURES.labels("announce").inc()
     return hold
 
 

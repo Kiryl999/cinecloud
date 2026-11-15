@@ -88,14 +88,44 @@ async def test_a_hold_is_all_or_nothing(client, tenant_a):
     assert (await _seat_states(client, url))[s2]["status"] == "available"
 
 
-async def test_a_sold_seat_cannot_be_held(client, session, tenant_a):
-    """Redis knows nothing about sales - the database is asked first."""
+async def test_a_sold_seat_cannot_be_held(client, session, redis, tenant_a):
+    """Redis knows nothing about sales - the database is asked as well."""
     url, showtime_id, (s1, *_) = await _showtime(client, tenant_a)
     await sell_seats(session, cinema_id=tenant_a.cinema_id, showtime_id=showtime_id, seat_ids=[s1])
 
     response = await client.post(f"{url}/holds", json={"seat_ids": [s1]})
 
     assert response.status_code == 409
+    assert await redis.keys("hold:*") == []
+
+
+async def test_a_seat_sold_just_before_the_hold_is_not_held(
+    client, session, redis, tenant_a, monkeypatch
+):
+    """A sale committed and released between the check and the hold.
+
+    Found by loadtest/rush.js: guests got holds on seats sold a moment earlier,
+    were turned away at checkout, and the other seats of their hold stayed
+    blocked until it ran out.
+    """
+    url, showtime_id, (s1, s2, *_) = await _showtime(client, tenant_a)
+    place = seat_holds.place
+
+    async def sale_commits_first(*args):
+        await sell_seats(session, cinema_id=tenant_a.cinema_id, showtime_id=showtime_id, seat_ids=[s1])
+        return await place(*args)
+
+    monkeypatch.setattr(seat_holds, "place", sale_commits_first)
+    pubsub = redis.pubsub()
+    await pubsub.subscribe(seat_holds.channel(showtime_id))
+    await pubsub.get_message(timeout=1)  # subscription confirmed
+
+    response = await client.post(f"{url}/holds", json={"seat_ids": [s1, s2]})
+
+    assert response.status_code == 409
+    assert await redis.keys("hold:*") == []  # s2 is free again at once
+    assert await pubsub.get_message(ignore_subscribe_messages=True, timeout=0.5) is None
+    await pubsub.aclose()
 
 
 async def test_a_seat_of_another_hall_is_rejected(client, tenant_a):
