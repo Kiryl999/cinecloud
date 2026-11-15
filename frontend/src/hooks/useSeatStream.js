@@ -35,16 +35,22 @@ function applyChange(seats, change, receivedAt) {
  *
  * The server starts every connection with a full snapshot and then sends each
  * change. EventSource reconnects by itself after a dropped connection, and the
- * fresh snapshot then covers whatever happened in between.
+ * fresh snapshot then covers whatever happened in between. If the stream fails
+ * before its first snapshot - behind a proxy that buffers it, say - one plain
+ * request fills the map until the stream gets through.
  */
 export function useSeatStream(slug, showtimeId) {
   const [seats, setSeats] = useState(null);
   const [live, setLive] = useState(false);
 
   useEffect(() => {
+    let snapshot = false;
+    let fallback = false;
+    let closed = false;
     const source = new EventSource(cinemaService.seatStreamUrl(slug, showtimeId));
 
     source.addEventListener("snapshot", (event) => {
+      snapshot = true;
       setSeats(toSeats(JSON.parse(event.data).seats));
       setLive(true);
     });
@@ -53,9 +59,22 @@ export function useSeatStream(slug, showtimeId) {
       const receivedAt = Date.now();
       setSeats((current) => (current ? applyChange(current, change, receivedAt) : current));
     });
-    source.onerror = () => setLive(false);
+    source.onerror = () => {
+      setLive(false);
+      if (snapshot || fallback) return;
+      fallback = true;
+      cinemaService
+        .showtime(slug, showtimeId)
+        .then((data) => {
+          if (!closed && !snapshot) setSeats(toSeats(data.seats));
+        })
+        .catch(() => {}); // the page reports a missing showtime itself
+    };
 
-    return () => source.close();
+    return () => {
+      closed = true;
+      source.close();
+    };
   }, [slug, showtimeId]);
 
   return { seats, live };

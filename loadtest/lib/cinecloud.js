@@ -36,13 +36,15 @@ export function cinema(slug) {
       return showtimes.status === 200 ? showtimes.json() : [];
     },
 
+    /** The showtime page: its details, and the seat map the stream starts with. */
     showtimePage(showtimeId) {
-      const [details] = http.batch([
-        ['GET', `${api}/showtimes/${showtimeId}`, null, { tags: { name: 'showtime' } }],
+      const [details, snapshot] = http.batch([
+        ['GET', `${api}/showtimes/${showtimeId}?seats=false`, null, { tags: { name: 'showtime' } }],
         ['GET', `${api}/showtimes/${showtimeId}`, null, { tags: { name: 'seat stream' } }],
       ]);
       check(details, { 'showtime loaded': (r) => r.status === 200 });
-      return details.status === 200 ? details.json() : null;
+      check(snapshot, { 'seat map loaded': (r) => r.status === 200 });
+      return details.status === 200 && snapshot.status === 200 ? snapshot.json() : null;
     },
 
     seatMap: seats,

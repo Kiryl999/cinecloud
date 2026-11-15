@@ -64,9 +64,12 @@ export const cinemaService = {
   get: (slug) => request(`/cinemas/${encodeURIComponent(slug)}`),
   /** Upcoming showtimes of one cinema, each with its movie and hall. */
   showtimes: (slug) => request(`/cinemas/${encodeURIComponent(slug)}/showtimes`),
-  /** One showtime including the current state of every seat. */
-  showtime: (slug, showtimeId) =>
-    request(`/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}`),
+  /** One showtime including the current state of every seat - unless `seats`
+      is false, for a page that takes the seats from the stream. */
+  showtime: (slug, showtimeId, { seats = true } = {}) =>
+    request(
+      `/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}${seats ? '' : '?seats=false'}`,
+    ),
   /** Live seat map as server-sent events - opened with EventSource, not fetch. */
   seatStreamUrl: (slug, showtimeId) =>
     `${API_BASE_URL}/cinemas/${encodeURIComponent(slug)}/showtimes/${showtimeId}/seats/stream`,

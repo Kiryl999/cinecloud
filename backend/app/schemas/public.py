@@ -57,4 +57,5 @@ class SeatState(BaseModel):
 
 
 class PublicShowtimeDetail(PublicShowtime):
-    seats: List[SeatState]
+    # None when the request asked to leave the seats out
+    seats: Optional[List[SeatState]]

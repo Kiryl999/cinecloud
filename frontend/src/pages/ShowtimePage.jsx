@@ -6,7 +6,7 @@ import Checkout from "../components/Checkout";
 import SeatGrid from "../components/SeatGrid";
 import SiteHeader from "../components/SiteHeader";
 import { useNow } from "../hooks/useNow";
-import { effectiveStatus, toSeats, useSeatStream } from "../hooks/useSeatStream";
+import { effectiveStatus, useSeatStream } from "../hooks/useSeatStream";
 import { bookingService, cinemaService } from "../services/api";
 import { clearHold, loadHold, saveHold } from "../utils/holdStorage";
 import { formatDay, formatPrice, formatTime, seatLabel } from "../utils/format";
@@ -30,13 +30,14 @@ function ShowtimePage() {
   const [notice, setNotice] = useState(null);
   const [reserving, setReserving] = useState(false);
 
-  // details for the header, and a clean 404 for a showtime that has started
+  // details for the header, and a clean 404 for a showtime that has started;
+  // the seats come with the stream
   useEffect(() => {
     let cancelled = false;
     cinemaService
-      .showtime(slug, showtimeId)
+      .showtime(slug, showtimeId, { seats: false })
       .then((data) => {
-        if (!cancelled) setShowtime({ ...data, seats: toSeats(data.seats) });
+        if (!cancelled) setShowtime(data);
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
@@ -46,8 +47,7 @@ function ShowtimePage() {
     };
   }, [slug, showtimeId]);
 
-  // the live stream takes over as soon as its first snapshot arrives
-  const seats = liveSeats ?? showtime?.seats ?? [];
+  const seats = liveSeats ?? [];
   const free = new Set(
     seats.filter((seat) => effectiveStatus(seat, now) === "available").map((seat) => seat.id),
   );

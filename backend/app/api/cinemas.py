@@ -79,10 +79,12 @@ async def list_upcoming_showtimes(slug: str, db: DbSession):
 
 @router.get("/{slug}/showtimes/{showtime_id}", response_model=PublicShowtimeDetail)
 async def get_showtime_with_seats(
-    slug: str, showtime_id: int, db: DbSession, redis: RedisClient
+    slug: str, showtime_id: int, db: DbSession, redis: RedisClient, seats: bool = True
 ):
+    """`?seats=false` leaves the seat map out: the visitor page takes it from
+    the seat stream, which starts with the same map."""
     showtime = await get_upcoming_showtime_or_404(db, slug, showtime_id)
     return {
         **PublicShowtime.model_validate(showtime).model_dump(),
-        "seats": await booking.seat_map(db, redis, showtime),
+        "seats": await booking.seat_map(db, redis, showtime) if seats else None,
     }

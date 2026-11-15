@@ -117,6 +117,19 @@ async def test_seat_map_lists_every_seat_in_order(client, tenant_a):
     assert {s["status"] for s in seats} == {"available"}
 
 
+async def test_showtime_without_seat_map_on_request(client, tenant_a):
+    """The visitor page takes the seats from the stream and asks only for the rest."""
+    (showtime_id,) = await _schedule(client, tenant_a, _from_now(days=1))
+
+    response = await client.get(f"/cinemas/kino-alpha/showtimes/{showtime_id}?seats=false")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["seats"] is None
+    assert body["id"] == showtime_id
+    assert {"start_time", "ticket_price", "movie", "hall"} <= set(body)
+
+
 async def test_seat_map_marks_sold_seats_as_booked(client, session, tenant_a):
     (showtime_id,) = await _schedule(client, tenant_a, _from_now(days=1))
     url = f"/cinemas/kino-alpha/showtimes/{showtime_id}"
