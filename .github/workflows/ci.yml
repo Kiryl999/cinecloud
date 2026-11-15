@@ -118,6 +118,22 @@ jobs:
       - name: Check the dashboards
         run: jq empty k8s/monitoring/dashboards/*.json
 
+  loadtest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Compiles each scenario and works out its options, as k6 does before a
+      # run, without sending a request: a mistake shows here, not minutes
+      # into a test.
+      - name: Check the load tests
+        run: |
+          for scenario in loadtest/*.js; do
+            docker run --rm -v "$PWD/loadtest:/scripts:ro" grafana/k6:2.3.0 \
+              inspect "/scripts/$(basename "$scenario")" > /dev/null
+          done
+
   # Builds both images once the tests pass on main and pushes them to ghcr.io
   images:
     needs: [backend, frontend]

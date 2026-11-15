@@ -2,7 +2,7 @@
 
 ```
 k8s/
-  cluster/minikube/    once per cluster: Gateway API, Envoy Gateway and Argo CD
+  cluster/minikube/    once per cluster: Gateway API, Envoy Gateway, Argo CD and the metrics-server
   base/                the app and Keycloak, shared by every environment
   overlays/minikube/   the local cluster: PostgreSQL, Redis, Mailpit, the Gateway, images from ghcr.io
   monitoring/          Prometheus, Alertmanager and Grafana: the chart's settings, CineCloud's alerts and dashboard
@@ -51,6 +51,20 @@ kubectl -n cinecloud get pods
 
 HEALTH stays *Progressing* until `minikube tunnel` runs: Argo CD counts the
 Gateway as up only once it has an address.
+
+### Autoscaling
+
+The backend runs on two to four pods. Each gets half a core; once they use
+more than 70 % of it on average, the HorizontalPodAutoscaler in
+`base/backend.yml` starts another, and it takes one away again after five
+quiet minutes. The CineCloud dashboard in Grafana shows the pods and their
+CPU against both lines.
+
+```sh
+kubectl -n cinecloud get hpa backend    # TARGETS: CPU now / target, REPLICAS
+```
+
+`loadtest/` puts the app under the load that makes it scale.
 
 ### Argo CD
 

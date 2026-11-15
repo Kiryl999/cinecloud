@@ -692,6 +692,7 @@
       "id": 19,
       "type": "timeseries",
       "title": "Backend pods",
+      "description": "The autoscaler sets the desired number, up to its maximum. Ready lags behind while new pods start.",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 47 },
       "targets": [
@@ -704,6 +705,11 @@
           "refId": "B",
           "expr": "max(kube_deployment_status_replicas_available{namespace=\"cinecloud\", deployment=\"backend\"})",
           "legendFormat": "ready"
+        },
+        {
+          "refId": "C",
+          "expr": "max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"cinecloud\", horizontalpodautoscaler=\"backend\"})",
+          "legendFormat": "maximum"
         }
       ],
       "fieldConfig": {
@@ -730,6 +736,13 @@
           {
             "matcher": { "id": "byName", "options": "ready" },
             "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "maximum" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } },
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+            ]
           }
         ]
       },
@@ -742,7 +755,7 @@
       "id": 20,
       "type": "timeseries",
       "title": "Backend CPU by pod",
-      "description": "Compared with what each pod requests, which is also what an autoscaler would measure against.",
+      "description": "A pod gets no more than its limit and slows down instead. The autoscaler adds a pod while the pods stay above its target on average.",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 47 },
       "targets": [
@@ -753,8 +766,13 @@
         },
         {
           "refId": "B",
-          "expr": "max(kube_pod_container_resource_requests{namespace=\"cinecloud\", container=\"backend\", resource=\"cpu\"})",
-          "legendFormat": "request"
+          "expr": "max(kube_pod_container_resource_limits{namespace=\"cinecloud\", container=\"backend\", resource=\"cpu\"})",
+          "legendFormat": "limit"
+        },
+        {
+          "refId": "C",
+          "expr": "max(kube_pod_container_resource_requests{namespace=\"cinecloud\", container=\"backend\", resource=\"cpu\"}) * max(kube_horizontalpodautoscaler_spec_target_metric{namespace=\"cinecloud\", horizontalpodautoscaler=\"backend\", metric_name=\"cpu\"}) / 100",
+          "legendFormat": "autoscaler target"
         }
       ],
       "fieldConfig": {
@@ -771,7 +789,14 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "request" },
+            "matcher": { "id": "byName", "options": "limit" },
+            "properties": [
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } },
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "autoscaler target" },
             "properties": [
               { "id": "color", "value": { "mode": "fixed", "fixedColor": "text" } },
               { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }

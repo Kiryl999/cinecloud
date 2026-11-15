@@ -10,7 +10,8 @@ metadata:
     # after the migration (see migrate-job.yml)
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  replicas: 2
+  # No replicas: the autoscaler below sets them. A number here would have
+  # Argo CD put it back after every change the autoscaler makes.
   selector:
     matchLabels:
       app.kubernetes.io/name: backend
@@ -62,10 +63,15 @@ spec:
               sleep:
                 seconds: 5
           resources:
+            # Half a core, as request and as limit: the budget the autoscaler
+            # measures against, and a ceiling that keeps an overloaded backend
+            # from taking the CPU PostgreSQL, the gateway and Kubernetes itself
+            # need - more load means more pods, not bigger ones.
             requests:
-              cpu: 100m
+              cpu: 500m
               memory: 128Mi
             limits:
+              cpu: 500m
               memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
@@ -94,3 +100,37 @@ spec:
     - name: http
       port: 8000
       targetPort: http
+---
+# More backend pods while they are busy, fewer once they are not. The
+# metrics-server supplies the CPU usage (see k8s/README.md).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  labels:
+    app.kubernetes.io/name: backend
+  annotations:
+    # with the backend it scales
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  # two, so that a pod can fail or be replaced without an outage
+  minReplicas: 2
+  # Bound by PostgreSQL: a pod opens up to 15 connections (pool of 5 plus 10
+  # overflow, see app/core/config.py), so four pods take at most 60 of the
+  # server's 100 and leave room for Keycloak and the migration.
+  maxReplicas: 4
+  metrics:
+    # Another pod once the pods use more than 70 % of their CPU request on
+    # average; the 30 % left take the rising load while that pod starts. Fewer
+    # pods only after five minutes below it, the default, so a short lull
+    # does not undo the scaling.
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

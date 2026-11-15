@@ -95,6 +95,7 @@ grafana:
       cpu: 50m
       memory: 320Mi
     limits:
+      cpu: 500m
       memory: 512Mi
   sidecar:
     resources:
