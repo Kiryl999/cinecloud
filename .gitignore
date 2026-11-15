@@ -44,3 +44,5 @@ md.ipynb
 skills-lock.json
 
 graphify-out/
+# load test output, see loadtest/run.py
+loadtest/results/
