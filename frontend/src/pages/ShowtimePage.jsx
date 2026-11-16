@@ -4,12 +4,13 @@ import { Link, useParams } from "react-router-dom";
 import BookingConfirmation from "../components/BookingConfirmation";
 import Checkout from "../components/Checkout";
 import SeatGrid from "../components/SeatGrid";
+import SiteFooter from "../components/SiteFooter";
 import SiteHeader from "../components/SiteHeader";
 import { useNow } from "../hooks/useNow";
 import { effectiveStatus, useSeatStream } from "../hooks/useSeatStream";
 import { bookingService, cinemaService } from "../services/api";
 import { clearHold, loadHold, saveHold } from "../utils/holdStorage";
-import { formatDay, formatPrice, formatTime, seatLabel } from "../utils/format";
+import { formatDayRelative, formatPrice, formatTime, seatsByRow } from "../utils/format";
 import "../styles/Public.css";
 
 const MAX_SEATS = 10;
@@ -118,26 +119,44 @@ function ShowtimePage() {
   }
 
   const seatsOf = (ids) => seats.filter((seat) => ids.includes(seat.id));
+  const step = booking ? 3 : activeHold ? 2 : 1;
+  const total = Number(showtime?.ticket_price ?? 0) * chosen.length;
 
   return (
     <div className="page">
       <SiteHeader />
 
       <main className="page__body">
-        <Link to={`/cinemas/${slug}`} className="page__back">
-          ← Programme
+        <Link to={`/cinemas/${slug}`} className="back">
+          Programme
         </Link>
 
-        {error && <p className="page__error">{error}</p>}
-        {!showtime && !error && <p className="page__status">Loading seats…</p>}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        {!showtime && !error && <p className="status">Loading the showtime…</p>}
 
         {showtime && (
           <>
-            <span className="page__eyebrow">
-              {formatDay(showtime.start_time)} · {formatTime(showtime.start_time)} ·{" "}
-              {showtime.hall.name}
-            </span>
-            <h1>{showtime.movie.title}</h1>
+            <h1 className="title">{showtime.movie.title}</h1>
+            <p className="subtitle">
+              {formatDayRelative(showtime.start_time)} at {formatTime(showtime.start_time)} in{" "}
+              {showtime.hall.name}, {formatPrice(showtime.ticket_price)} per seat
+            </p>
+
+            <ol className="steps" aria-label="Booking steps">
+              {["Choose seats", "Your details", "Booked"].map((label, index) => (
+                <li
+                  key={label}
+                  className={index + 1 < step ? "steps__done" : undefined}
+                  aria-current={index + 1 === step ? "step" : undefined}
+                >
+                  {label}
+                </li>
+              ))}
+            </ol>
 
             {booking ? (
               <BookingConfirmation booking={booking} seats={seatsOf(booking.seat_ids)} slug={slug} />
@@ -149,9 +168,11 @@ function ShowtimePage() {
                 onBook={book}
               />
             ) : (
-              <>
-                <div className="seatmap">
-                  <div className="seatmap__screen">Screen</div>
+              <div className="booking">
+                <section className="seatmap" aria-label="Seat map">
+                  <div className="seatmap__screen" aria-hidden="true">
+                    Screen
+                  </div>
 
                   <SeatGrid
                     seats={seats}
@@ -166,40 +187,41 @@ function ShowtimePage() {
                       <span className="seat seat--free" aria-hidden="true" /> Free
                     </li>
                     <li>
-                      <span className="seat seat--chosen" aria-hidden="true" /> Your pick
+                      <span className="seat seat--chosen" aria-hidden="true" /> Your seats
                     </li>
                     <li>
                       <span className="seat seat--taken" aria-hidden="true" /> Taken
                     </li>
-                    <li className={live ? "seatmap__live" : "seatmap__live seatmap__live--off"}>
-                      {live ? "Live" : "Connecting…"}
+                    <li className={live ? "live" : "live live--off"}>
+                      {live ? "Updates live" : "Connecting…"}
                     </li>
                   </ul>
-                </div>
+                </section>
 
-                <aside className="selection">
+                <aside className="selection" aria-label="Your selection">
                   {message && (
-                    <p className="page__error" role="status">
+                    <p className="error" role="status">
                       {message}
                     </p>
                   )}
                   {lost > 0 && (
-                    <p className="page__error" role="status">
+                    <p className="error" role="status">
                       Someone else just took{" "}
                       {lost === 1 ? "one of your seats" : `${lost} of your seats`}.
                     </p>
                   )}
 
                   {chosen.length === 0 ? (
-                    <p className="page__status">
-                      Pick up to {MAX_SEATS} seats · {formatPrice(showtime.ticket_price)} each
+                    <p className="selection__hint">
+                      Choose the seats you want, up to {MAX_SEATS}. They are held for you
+                      for 10 minutes once you reserve them.
                     </p>
                   ) : (
                     <>
-                      <p className="selection__seats">{chosen.map(seatLabel).join(", ")}</p>
+                      <p className="selection__seats">{seatsByRow(chosen)}</p>
                       <p className="selection__total">
-                        {chosen.length} {chosen.length === 1 ? "seat" : "seats"} ·{" "}
-                        {formatPrice(Number(showtime.ticket_price) * chosen.length)}
+                        {chosen.length} {chosen.length === 1 ? "seat" : "seats"},{" "}
+                        <strong>{formatPrice(total)}</strong>
                       </p>
                       <button
                         type="button"
@@ -212,11 +234,13 @@ function ShowtimePage() {
                     </>
                   )}
                 </aside>
-              </>
+              </div>
             )}
           </>
         )}
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

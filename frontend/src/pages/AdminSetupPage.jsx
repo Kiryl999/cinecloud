@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 
+import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import { cinemaService } from '../services/api';
 import '../styles/Admin.css';
@@ -70,7 +71,9 @@ function AdminSetupPage() {
   return (
     <div className="admin-login">
       <div className="admin-login__card admin-login__card--wide">
-        <span className="logo">CineCloud</span>
+        <span className="logo">
+          <Logo />
+        </span>
 
         <p className="admin-setup__account">
           <span>
@@ -81,7 +84,6 @@ function AdminSetupPage() {
           </button>
         </p>
 
-        <span className="eyebrow">Welcome</span>
         <h1>Open your cinema</h1>
 
         <form className="admin-setup__form" onSubmit={handleSubmit}>

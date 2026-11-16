@@ -1,12 +1,11 @@
-/* Operator area. Reuses the tokens from theme.css so the admin screens sit in
-   the same palette as the public landing page. */
+/* Operator area, on the tokens of theme.css. */
 
 .admin-login {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--marquee);
+  background: var(--blue);
   padding: 2rem;
 }
 
@@ -15,13 +14,14 @@
   max-width: 24rem;
   display: flex;
   flex-direction: column;
-  background: var(--paper);
+  background: var(--white);
   border-radius: 0.75rem;
   padding: 2.5rem;
 }
 
 .admin-login__card h1 {
-  font-family: "Fraunces", serif;
+  font-weight: 800;
+  font-stretch: 70%;
   font-size: 1.75rem;
   margin-bottom: 1.75rem;
 }
@@ -31,15 +31,9 @@
   margin-bottom: 1.5rem;
 }
 
-.admin-login__card .eyebrow {
-  color: var(--amber);
-  margin-bottom: 0.25rem;
-}
-
 .admin-login__card label {
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 600;
   margin-bottom: 0.4rem;
 }
 
@@ -47,14 +41,14 @@
   font: inherit;
   padding: 0.65rem 0.75rem;
   margin-bottom: 1.25rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
-  background: #fff;
+  background: var(--white);
   color: var(--ink);
 }
 
 .admin-login__card input:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--blue);
   outline-offset: 1px;
 }
 
@@ -65,8 +59,8 @@
   padding: 0.75rem;
   border: none;
   border-radius: 0.35rem;
-  background: var(--amber);
-  color: var(--marquee);
+  background: var(--blue);
+  color: var(--white);
 }
 
 .admin-login__card .cta:disabled {
@@ -126,11 +120,11 @@
   display: flex;
   align-items: center;
   padding-left: 0.75rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-right: none;
   border-radius: 0.35rem 0 0 0.35rem;
-  background: #fff;
-  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  background: var(--white);
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -149,8 +143,6 @@
   gap: 0.6rem;
   font-size: 0.9rem;
   line-height: 1.4;
-  letter-spacing: normal;
-  text-transform: none;
   margin-bottom: 1.5rem;
   cursor: pointer;
 }
@@ -158,7 +150,7 @@
 .admin-login__card .admin-setup__check input {
   margin: 0.15rem 0 0;
   padding: 0;
-  accent-color: var(--amber);
+  accent-color: var(--blue);
 }
 
 .admin-setup__note {
@@ -180,18 +172,52 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 2rem;
-  background: var(--marquee);
+  background: var(--blue);
 }
 
 .admin__bar .logo {
-  color: var(--paper);
+  color: var(--white);
+}
+
+.admin__cinema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin-right: auto;
+  color: var(--white);
+}
+
+.admin__cinema strong {
+  font-size: 1.15rem;
+  font-stretch: 75%;
+}
+
+.admin__cinema a {
+  color: var(--white);
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.admin__bar :focus-visible,
+.admin-login :focus-visible {
+  outline-color: var(--white);
+}
+
+.admin-login__card :focus-visible {
+  outline-color: var(--blue);
+}
+
+.admin-login__back {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
 }
 
 .admin__identity {
   display: flex;
   align-items: center;
   gap: 1rem;
-  color: var(--paper);
+  color: var(--white);
   font-size: 0.9rem;
 }
 
@@ -199,17 +225,17 @@
   font: inherit;
   cursor: pointer;
   padding: 0.4rem 0.9rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
   background: transparent;
-  color: var(--paper);
+  color: var(--white);
 }
 
 .admin__nav {
   display: flex;
   gap: 0.25rem;
   padding: 0 1.25rem;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--stone-line);
   overflow-x: auto;
 }
 
@@ -229,7 +255,7 @@
 }
 
 .admin__nav a.active {
-  border-bottom-color: var(--amber);
+  border-bottom-color: var(--blue);
   font-weight: 600;
   opacity: 1;
 }
@@ -241,13 +267,10 @@
 }
 
 .admin__body h1 {
-  font-family: "Fraunces", serif;
+  font-weight: 800;
+  font-stretch: 70%;
   font-size: 2rem;
   margin-bottom: 2rem;
-}
-
-.admin__body .eyebrow {
-  color: var(--amber);
 }
 
 .admin__lead {
@@ -271,13 +294,11 @@
   }
 }
 
-/* small caps heading above a list: "Coming up", a day of showtimes */
+/* heading above a list: "Coming up", a day of showtimes */
 .admin__heading {
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.7;
+  font-size: 1.2rem;
+  font-weight: 750;
+  font-stretch: 75%;
   margin-bottom: 0.6rem;
 }
 
@@ -290,33 +311,33 @@
 }
 
 .admin__card {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.5rem;
   padding: 1.5rem;
-  background: #fff;
+  background: var(--white);
   color: inherit;
   text-decoration: none;
   transition: border-color 150ms ease;
 }
 
 .admin__card:hover {
-  border-color: var(--amber);
+  border-color: var(--blue);
 }
 
 .admin__count {
   display: block;
-  font-family: "Fraunces", serif;
+  font-weight: 800;
+  font-stretch: 70%;
   font-size: 2.5rem;
   line-height: 1;
   margin-bottom: 0.5rem;
 }
 
 .admin__card h2 {
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.7;
+  font-stretch: 100%;
+  color: var(--muted);
 }
 
 .admin__public {
@@ -369,9 +390,9 @@
 .admin-list {
   list-style: none;
   padding: 0;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--white);
   overflow: hidden;
 }
 
@@ -385,12 +406,12 @@
 }
 
 .admin-row + .admin-row {
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--stone-line);
 }
 
 .admin-row--editing,
 .admin-row--selected {
-  background: color-mix(in srgb, var(--amber) 14%, #fff);
+  background: var(--blue-wash);
 }
 
 .admin-row__title {
@@ -409,7 +430,7 @@
 }
 
 .admin-row--past {
-  color: color-mix(in srgb, var(--ink) 55%, transparent);
+  color: var(--muted);
 }
 
 .admin-row__main {
@@ -434,7 +455,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   padding: 0.35rem 0.8rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
   background: transparent;
   color: var(--ink);
@@ -466,7 +487,7 @@
 }
 
 .admin-toggle input {
-  accent-color: var(--amber);
+  accent-color: var(--blue);
 }
 
 .admin-toolbar {
@@ -479,7 +500,7 @@
   font: inherit;
   cursor: pointer;
   padding: 0.6rem 1rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
   background: transparent;
   color: var(--ink);
@@ -494,14 +515,14 @@
   width: 100%;
   font: inherit;
   padding: 0.6rem 0.75rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
-  background: #fff;
+  background: var(--white);
   color: var(--ink);
 }
 
 .admin-search input:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--blue);
   outline-offset: 1px;
 }
 
@@ -537,9 +558,9 @@
 .admin-seatmap {
   margin-bottom: 2.5rem;
   padding: 1.5rem 1rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--white);
 }
 
 .admin-seatmap .seat:disabled {
@@ -547,18 +568,7 @@
 }
 
 .admin-seatmap .seat--free:hover {
-  border-color: var(--rule);
-}
-
-.seat--sold {
-  background: var(--marquee);
-  border-color: var(--marquee);
-  color: var(--paper);
-}
-
-.seat--held {
-  background: color-mix(in srgb, var(--amber) 18%, #fff);
-  border: 1px dashed var(--amber);
+  border-color: var(--stone-line);
 }
 
 .admin-seatmap .seatmap__legend {
@@ -572,7 +582,7 @@
 
 .admin-empty {
   padding: 2rem 1.5rem;
-  border: 1px dashed var(--rule);
+  border: 1px dashed var(--stone-line);
   border-radius: 0.5rem;
   text-align: center;
   line-height: 1.5;
@@ -583,22 +593,22 @@
   display: flex;
   flex-direction: column;
   padding: 1.5rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.5rem;
-  background: #fff;
+  background: var(--white);
 }
 
 .admin-editor h2 {
-  font-family: "Fraunces", serif;
+  font-weight: 800;
+  font-stretch: 70%;
   font-size: 1.25rem;
   margin-bottom: 1.25rem;
   overflow-wrap: anywhere;
 }
 
 .admin-editor label {
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 600;
   margin-bottom: 0.4rem;
 }
 
@@ -609,9 +619,9 @@
   font: inherit;
   padding: 0.6rem 0.7rem;
   margin-bottom: 1.1rem;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   border-radius: 0.35rem;
-  background: #fff;
+  background: var(--white);
   color: var(--ink);
 }
 
@@ -620,12 +630,12 @@
 }
 
 .admin-editor :is(input, select, textarea):focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--blue);
   outline-offset: 1px;
 }
 
 .admin-editor :is(input, select):disabled {
-  background: var(--paper);
+  background: var(--stone-wash);
   cursor: not-allowed;
 }
 
@@ -679,12 +689,12 @@
   flex: 1;
   font-weight: 600;
   border: none;
-  background: var(--amber);
-  color: var(--marquee);
+  background: var(--blue);
+  color: var(--white);
 }
 
 .admin-editor__buttons .cta:hover {
-  background: var(--amber-bright);
+  background: var(--blue-deep);
 }
 
 .admin-editor__buttons .cta:disabled {
@@ -693,7 +703,7 @@
 }
 
 .admin-editor__cancel {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--stone-line);
   background: transparent;
   color: var(--ink);
 }

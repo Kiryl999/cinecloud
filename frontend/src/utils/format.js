@@ -35,6 +35,16 @@ export const formatTime = (iso) => timeFormat.format(new Date(iso));
 
 export const dayKey = (iso) => dayKeyFormat.format(new Date(iso));
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** "Today", "Tomorrow" or the date, judged by the cinema's calendar. */
+export function formatDayRelative(iso, now = Date.now()) {
+  const key = dayKey(iso);
+  if (key === dayKey(now)) return "Today";
+  if (key === dayKey(now + DAY_MS)) return "Tomorrow";
+  return formatDay(iso);
+}
+
 /** The API sends decimals as strings, e.g. "12.50". */
 export const formatPrice = (value) => priceFormat.format(Number(value));
 
@@ -90,9 +100,9 @@ export function formatCountdown(ms) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export const seatLabel = (seat) => `Row ${seat.row_number} · Seat ${seat.seat_number}`;
+export const seatLabel = (seat) => `Row ${seat.row_number}, seat ${seat.seat_number}`;
 
-/** Several seats, one group per row: "Row 2: 11 · Row 4: 4, 5, 7". */
+/** Several seats, one group per row: "Row 2: 11; row 4: 4, 5, 7". */
 export function seatsByRow(seats) {
   const rows = new Map();
   const ordered = [...seats].sort(
@@ -102,5 +112,7 @@ export function seatsByRow(seats) {
     if (!rows.has(seat.row_number)) rows.set(seat.row_number, []);
     rows.get(seat.row_number).push(seat.seat_number);
   }
-  return [...rows].map(([row, numbers]) => `Row ${row}: ${numbers.join(", ")}`).join(" · ");
+  return [...rows]
+    .map(([row, numbers], index) => `${index ? "row" : "Row"} ${row}: ${numbers.join(", ")}`)
+    .join("; ");
 }
