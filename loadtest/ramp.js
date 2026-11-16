@@ -1,5 +1,5 @@
 import { sleep } from 'k6';
-import { cinema, pickSeats } from './lib/cinecloud.js';
+import { cinema, hosts, pickSeats } from './lib/cinecloud.js';
 
 const evening = cinema(__ENV.CINEMA || 'loadtest');
 
@@ -11,6 +11,7 @@ const HOLD_SHARE = 0.3;
 const BOOK_SHARE = 0.5;
 
 export const options = {
+  hosts,
   scenarios: {
     evening: {
       executor: 'ramping-arrival-rate',

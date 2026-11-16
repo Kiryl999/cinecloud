@@ -1,6 +1,6 @@
 import { check, fail } from 'k6';
 import { Counter, Gauge } from 'k6/metrics';
-import { cinema, pickSeats } from './lib/cinecloud.js';
+import { cinema, hosts, pickSeats } from './lib/cinecloud.js';
 
 
 const premiere = cinema(__ENV.CINEMA || 'loadtest-rush');
@@ -17,6 +17,7 @@ const seatsSold = new Gauge('seats_sold');
 const seatsStillHeld = new Gauge('seats_still_held');
 
 export const options = {
+  hosts,
   scenarios: {
     premiere: {
       executor: 'per-vu-iterations',

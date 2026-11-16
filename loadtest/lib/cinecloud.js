@@ -2,8 +2,12 @@ import http from 'k6/http';
 import { check } from 'k6';
 import exec from 'k6/execution';
 
-// The gateway. README.md shows how the k6 container reaches it.
+// The app, under the name the gateway routes by.
 const BASE_URL = __ENV.BASE_URL || 'http://localhost';
+
+// Where k6 runs, that name may lead somewhere else. HOSTS says where to find
+// it instead, e.g. {"localhost":"192.168.49.2:32263"} (see run.py).
+export const hosts = JSON.parse(__ENV.HOSTS || '{}');
 
 // 409 is an answer, not an error: somebody else was faster.
 http.setResponseCallback(http.expectedStatuses({ min: 200, max: 299 }, 409));
