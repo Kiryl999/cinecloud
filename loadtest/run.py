@@ -10,21 +10,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 K6_IMAGE = "grafana/k6:2.3.0"
-NAMESPACE = "cinecloud"
+NAMESPACE = "cinecloud-production"
+HOST = "localhost"  # the name the gateway routes to production by
 LOADTEST = Path(__file__).resolve().parent
 RESULTS = LOADTEST / "results"
 
 STEP = "15s"
 PROMETHEUS = {
-    "cpu_by_pod": 'sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="cinecloud", container!="", container!="POD"}[2m]))',
+    "cpu_by_pod": 'sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="cinecloud-production", container!="", container!="POD"}[2m]))',
     "cpu_by_namespace": 'sum by (namespace) (rate(container_cpu_usage_seconds_total{container!="", container!="POD"}[2m]))',
-    "throttled_share": 'sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="cinecloud", container="backend"}[2m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="cinecloud", container="backend"}[2m]))',
-    "memory_by_pod": 'sum by (pod) (container_memory_working_set_bytes{namespace="cinecloud", container="backend"})',
-    "ready_pods": 'sum(kube_pod_status_ready{namespace="cinecloud", pod=~"backend-.*", condition="true"})',
-    "hpa_replicas": 'max by (__name__) ({__name__=~"kube_horizontalpodautoscaler_status_(current|desired)_replicas", namespace="cinecloud", horizontalpodautoscaler="backend"})',
-    "hpa_utilization": 'max(kube_horizontalpodautoscaler_status_target_metric{namespace="cinecloud", horizontalpodautoscaler="backend", metric_target_type="utilization"})',
-    "server_requests": 'sum by (handler, status) (rate(http_requests_total{namespace="cinecloud"}[1m]))',
-    "server_p95_seconds": 'histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace="cinecloud"}[1m])))',
+    "throttled_share": 'sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="cinecloud-production", container="backend"}[2m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="cinecloud-production", container="backend"}[2m]))',
+    "memory_by_pod": 'sum by (pod) (container_memory_working_set_bytes{namespace="cinecloud-production", container="backend"})',
+    "ready_pods": 'sum(kube_pod_status_ready{namespace="cinecloud-production", pod=~"backend-.*", condition="true"})',
+    "hpa_replicas": 'max by (__name__) ({__name__=~"kube_horizontalpodautoscaler_status_(current|desired)_replicas", namespace="cinecloud-production", horizontalpodautoscaler="backend"})',
+    "hpa_utilization": 'max(kube_horizontalpodautoscaler_status_target_metric{namespace="cinecloud-production", horizontalpodautoscaler="backend", metric_target_type="utilization"})',
+    "server_requests": 'sum by (handler, status) (rate(http_requests_total{namespace="cinecloud-production"}[1m]))',
+    "server_p95_seconds": 'histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace="cinecloud-production"}[1m])))',
 }
 
 
@@ -82,13 +83,15 @@ def seed_cinema(scenario: str) -> str:
     return slug
 
 
-def gateway_url() -> str:
+def gateway_address() -> str:
+    """Where a container finds the gateway: on the node, not behind the tunnel of the host."""
     node_port = sh(
         "kubectl", "-n", "envoy-gateway-system", "get", "svc",
-        "-l", "gateway.envoyproxy.io/owning-gateway-name=cinecloud",
+        "-l", "gateway.envoyproxy.io/owning-gateway-name=cinecloud,"
+              "gateway.envoyproxy.io/owning-gateway-namespace=envoy-gateway-system",
         "-o", "jsonpath={.items[0].spec.ports[?(@.port==80)].nodePort}",
     )
-    return f"http://{sh('minikube', 'ip')}:{node_port}"
+    return f"{sh('minikube', 'ip')}:{node_port}"
 
 
 def run_k6(run_dir: Path, scenario: str, env: dict[str, str]) -> int:
@@ -149,7 +152,7 @@ def one_run(series: str, scenario: str, env: dict[str, str], settle: int) -> Non
     slug = seed_cinema(scenario)
     time.sleep(30)  # the seeding's own load fades before the measurement
 
-    env = {"BASE_URL": gateway_url(), "CINEMA": slug, **env}
+    env = {"BASE_URL": f"http://{HOST}", "HOSTS": json.dumps({HOST: gateway_address()}), "CINEMA": slug, **env}
     log(f"k6 runs {scenario} against {slug}")
     start = time.time()
     exit_code = run_k6(run_dir, scenario, env)
@@ -172,7 +175,7 @@ def record(run_dir: Path, series: str, scenario: str, slug: str, env: dict, git:
         # anything besides the app, its gateway and Kubernetes itself that
         # takes the node's CPU distorts the result - Grafana did once
         "max_cores_elsewhere": round(peak(
-            'sum(rate(container_cpu_usage_seconds_total{namespace!~"cinecloud|envoy-gateway-system|kube-system", container!="", container!="POD"}[2m]))',
+            'sum(rate(container_cpu_usage_seconds_total{namespace!~"cinecloud-production|envoy-gateway-system|kube-system", container!="", container!="POD"}[2m]))',
             start, end), 2),
         "pods_at_start": hpa["status"]["currentReplicas"],
     }
@@ -186,7 +189,7 @@ def record(run_dir: Path, series: str, scenario: str, slug: str, env: dict, git:
         "end": datetime.fromtimestamp(end, timezone.utc).isoformat(),
         "k6_exit_code": exit_code,  # 0 thresholds met, 99 thresholds crossed
         "note": note,
-        "env": {k: v for k, v in env.items() if k != "BASE_URL"},
+        "env": {k: v for k, v in env.items() if k not in ("BASE_URL", "HOSTS")},
         "checks": checks,
         "git": git,
         "backend_image": deployment["spec"]["template"]["spec"]["containers"][0]["image"],

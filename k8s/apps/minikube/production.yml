@@ -1,9 +1,9 @@
-# Has Argo CD deploy the minikube overlay of main and keep the cluster in line
-# with it. Applied once by hand, once Argo CD runs (see k8s/README.md).
+# Has Argo CD deploy the production overlay of main and keep the cluster in
+# line with it. Applied once by hand, once Argo CD runs (see k8s/README.md).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cinecloud
+  name: cinecloud-production
   namespace: argocd
   # deleting the Application deletes what it deployed; without the finalizer
   # the app would keep running, only no longer managed
@@ -14,10 +14,10 @@ spec:
   source:
     repoURL: https://github.com/Kiryl999/cinecloud.git
     targetRevision: main
-    path: k8s/overlays/minikube
+    path: k8s/overlays/production
   destination:
     server: https://kubernetes.default.svc
-    namespace: cinecloud
+    namespace: cinecloud-production
   syncPolicy:
     automated:
       # what is gone from git goes from the cluster too, and changes made by

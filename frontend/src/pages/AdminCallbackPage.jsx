@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import Logo from '../components/Logo';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Admin.css';
 
@@ -28,7 +29,9 @@ function AdminCallbackPage() {
   return (
     <div className="admin-login">
       <div className="admin-login__card">
-        <span className="logo">CineCloud</span>
+        <span className="logo">
+          <Logo />
+        </span>
         <h1>Sign-in failed</h1>
         <p className="admin-login__error" role="alert">
           {error}

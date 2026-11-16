@@ -1,3 +1,12 @@
+// what a screen reader says for each state
+const STATE_NAMES = {
+  free: "free",
+  chosen: "selected",
+  taken: "taken",
+  sold: "sold",
+  held: "held by a guest",
+};
+
 function groupByRow(seats) {
   const rows = new Map();
   for (const seat of seats) {
@@ -29,7 +38,7 @@ function SeatGrid({ seats, stateOf, onToggle, disabledStates = ["taken"] }) {
                   className={`seat seat--${state}`}
                   disabled={disabledStates.includes(state)}
                   aria-pressed={state === "chosen"}
-                  aria-label={`Row ${row}, seat ${seat.seat_number}, ${state}`}
+                  aria-label={`Row ${row}, seat ${seat.seat_number}, ${STATE_NAMES[state] ?? state}`}
                   onClick={() => onToggle(seat)}
                 >
                   {seat.seat_number}

@@ -1,0 +1,24 @@
+# The staging overlay, deployed the same way as production.yml - but from
+# develop: staging runs what is being worked on, manifests included.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cinecloud-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Kiryl999/cinecloud.git
+    targetRevision: develop
+    path: k8s/overlays/staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cinecloud-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

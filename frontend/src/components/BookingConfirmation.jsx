@@ -1,25 +1,30 @@
 import { Link } from "react-router-dom";
 
-import { formatPrice, seatLabel } from "../utils/format";
+import { formatPrice, seatsByRow } from "../utils/format";
 
 /** Last step: the sale is recorded, the reference is what the guest keeps. */
 function BookingConfirmation({ booking, seats, slug }) {
   return (
-    <section className="confirmation">
-      <span className="page__eyebrow">Booked</span>
-      <p className="confirmation__reference">{booking.reference}</p>
-      <p className="page__status">Your booking reference - keep it for the entrance.</p>
+    <section className="panel confirmation" aria-labelledby="booking-reference">
+      <h2>You are booked</h2>
+      <p className="confirmation__label">Booking reference, shown at the entrance</p>
+      <p className="confirmation__reference" id="booking-reference">
+        {booking.reference}
+      </p>
 
-      <ul className="checkout__seats">
-        {seats.map((seat) => (
-          <li key={seat.id}>{seatLabel(seat)}</li>
-        ))}
-      </ul>
-      <p className="selection__total">{formatPrice(booking.total_price)}</p>
-      <p className="page__status">Booked for {booking.guest_email}</p>
+      <p className="checkout__seats">{seatsByRow(seats)}</p>
+      <p className="checkout__total">
+        Paid <strong>{formatPrice(booking.total_price)}</strong>
+      </p>
 
-      <Link to={`/cinemas/${slug}`} className="page__back">
-        ← Back to the programme
+      <p className="confirmation__mail">
+        A confirmation is on its way to <strong>{booking.guest_email}</strong>. In this demo
+        no mail leaves the server: every one of them lands in the{" "}
+        <a href="/mail/">demo mailbox</a>.
+      </p>
+
+      <Link to={`/cinemas/${slug}`} className="button button--quiet">
+        Back to the programme
       </Link>
     </section>
   );

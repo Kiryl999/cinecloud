@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
-import LandingPage from "./pages/LandingPage";
 import CinemaSelectionPage from "./pages/CinemaSelectionPage";
 import CinemaPage from "./pages/CinemaPage";
 import ShowtimePage from "./pages/ShowtimePage";
@@ -22,9 +21,9 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* visitors start here; the sales page for cinema owners moved */}
           <Route path="/" element={<CinemaSelectionPage />} />
-          <Route path="/for-cinemas" element={<LandingPage />} />
+          {/* where the sales page used to be */}
+          <Route path="/for-cinemas" element={<Navigate to="/admin" replace />} />
           <Route path="/cinemas" element={<Navigate to="/" replace />} />
           <Route path="/cinemas/:slug" element={<CinemaPage />} />
           <Route

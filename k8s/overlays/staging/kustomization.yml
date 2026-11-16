@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Where a change is seen running before it is released, at
+# http://staging.localhost. It follows develop: CI writes the images of each
+# tested commit to images/ (see README.md).
+
+namespace: cinecloud-staging
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: backend-config
+    behavior: merge
+    literals:
+      - OIDC_ISSUER=http://staging.localhost/auth/realms/cinecloud
+  - name: keycloak-config
+    behavior: merge
+    literals:
+      - KC_HOSTNAME=http://staging.localhost/auth
+
+components:
+  - ../../components/minikube
+  - images
+
+patches:
+  - path: small.yml

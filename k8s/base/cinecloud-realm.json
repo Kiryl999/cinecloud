@@ -72,14 +72,14 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "redirectUris": [
-        "http://localhost/admin/callback",
+        "/admin/callback",
         "http://localhost:5173/admin/callback",
         "http://localhost:8000/docs/oauth2-redirect"
       ],
       "webOrigins": ["+"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost/##http://localhost:5173/"
+        "post.logout.redirect.uris": "/##http://localhost:5173/"
       },
       "protocolMappers": [
         {

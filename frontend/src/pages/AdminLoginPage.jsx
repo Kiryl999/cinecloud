@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+
+import Logo from '../components/Logo';
 
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Admin.css';
@@ -38,13 +40,15 @@ function AdminLoginPage() {
   return (
     <div className="admin-login">
       <div className="admin-login__card">
-        <span className="logo">CineCloud</span>
-        <span className="eyebrow">Operator area</span>
-        <h1>Sign in</h1>
+        <Link to="/" className="logo">
+          <Logo />
+        </Link>
+        <h1>Run a cinema on CineCloud</h1>
 
         <p className="admin-login__hint">
-          You will be taken to the CineCloud sign-in page. Sign in with your
-          passkey there, or register if you are new.
+          This is a demo: anyone can open a cinema of their own, plan its
+          programme and watch the bookings come in. Sign in with a passkey, or
+          register if you are new; there is no password.
         </p>
 
         {error && (
@@ -59,8 +63,12 @@ function AdminLoginPage() {
           disabled={redirecting}
           onClick={handleSignIn}
         >
-          {redirecting ? 'Redirecting…' : 'Sign in'}
+          {redirecting ? 'Redirecting…' : 'Sign in or register'}
         </button>
+
+        <Link to="/" className="admin-login__back">
+          Back to the cinemas
+        </Link>
       </div>
     </div>
   );

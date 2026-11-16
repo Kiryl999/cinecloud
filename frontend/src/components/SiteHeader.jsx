@@ -1,15 +1,18 @@
 import { Link } from "react-router-dom";
 
-/** Header of the visitor pages. Cinema owners find their way to the sales page. */
+import Logo from "./Logo";
+
+/** Header of the visitor pages. */
 function SiteHeader() {
   return (
     <header className="site-header">
-      <Link to="/" className="site-header__logo">
-        CineCloud
+      <Link to="/" className="logo">
+        <Logo />
       </Link>
-      <Link to="/for-cinemas" className="site-header__link">
-        For cinemas
-      </Link>
+      <nav aria-label="Site">
+        <Link to="/">Cinemas</Link>
+        <Link to="/admin">For cinema operators</Link>
+      </nav>
     </header>
   );
 }

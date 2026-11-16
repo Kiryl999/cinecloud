@@ -1,4 +1,6 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+
+import Logo from './Logo';
 
 import { useAuth } from '../hooks/useAuth';
 import { useProgrammeLoader } from '../hooks/useProgramme';
@@ -16,7 +18,15 @@ function AdminLayout() {
   return (
     <div className="admin">
       <header className="admin__bar">
-        <span className="logo">CineCloud</span>
+        <Link to="/admin" className="logo">
+          <Logo />
+        </Link>
+        {admin?.cinema && (
+          <div className="admin__cinema">
+            <strong>{admin.cinema.name}</strong>
+            <Link to={`/cinemas/${admin.cinema.slug}`}>See it as a visitor</Link>
+          </div>
+        )}
         <div className="admin__identity">
           <span>Signed in as {account?.email}</span>
           <button type="button" onClick={logout}>
@@ -36,8 +46,6 @@ function AdminLayout() {
       </nav>
 
       <main className="admin__body">
-        <span className="eyebrow">{admin?.cinema?.name}</span>
-
         {error && (
           <p className="admin-login__error" role="alert">
             {error}

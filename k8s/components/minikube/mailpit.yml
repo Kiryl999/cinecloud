@@ -1,5 +1,5 @@
 # Only for the local cluster: a mail server that delivers nothing. It takes
-# whatever the backend sends and shows it at http://localhost/mail, so a
+# whatever the backend sends and shows it at /mail of its environment, so a
 # booking confirmation can be read without a mail leaving this machine. An
 # environment with real guests sends through a relay instead, see SMTP_* in
 # backend/app/core/config.py.
@@ -90,11 +90,12 @@ kind: HTTPRoute
 metadata:
   name: mailpit
   annotations:
-    # with the Gateway, see gateway.yml
+    # with the app's route
     argocd.argoproj.io/sync-wave: "3"
 spec:
   parentRefs:
     - name: cinecloud
+      namespace: envoy-gateway-system
   rules:
     - matches:
         - path:

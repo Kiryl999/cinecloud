@@ -4,8 +4,8 @@
 #
 # The waves order each sync: everything without one (0) - PostgreSQL, Redis,
 # Keycloak, the frontend, the ConfigMaps - is up before the migration (1),
-# the backend (2) rolls only once it has succeeded, and the Gateway and its
-# route (3) come last.
+# the backend (2) rolls only once it has succeeded, and the routes (3) come
+# last.
 apiVersion: batch/v1
 kind: Job
 metadata:

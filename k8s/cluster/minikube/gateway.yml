@@ -1,0 +1,33 @@
+# The entry point of the cluster, shared by both environments. Each has a
+# listener of its own, which sets its hostname and takes routes from its
+# namespace only: nothing in staging can answer for production. Envoy Gateway
+# runs an Envoy proxy for the Gateway behind a LoadBalancer service, which
+# `minikube tunnel` puts on 127.0.0.1.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cinecloud
+  namespace: envoy-gateway-system
+spec:
+  gatewayClassName: envoy
+  listeners:
+    - name: production
+      hostname: localhost
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: cinecloud-production
+    - name: staging
+      hostname: staging.localhost
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: cinecloud-staging

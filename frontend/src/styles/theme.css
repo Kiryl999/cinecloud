@@ -1,19 +1,29 @@
-/* Global design tokens and reset.
-
-   These used to live in LandingPage.css, which meant they only applied while
-   the landing page was mounted. Imported from main.jsx they are available to
-   every route. */
+/* Design tokens, reset and the parts every page shares: buttons, fields,
+   the header and footer of the visitor pages. */
 
 :root {
   color-scheme: light;
-  --ink: #1b1d29;
-  --marquee: #14151f;
-  --paper: #faf6ee;
-  --amber: #e8a33d;
-  --amber-bright: #f4c76b;
-  --rule: #ddd5c2;
-  --danger: #b3261e;
-  --success: #2f6b3b;
+
+  /* Egyptian blue: the brand, actions and the seats a guest picks */
+  --blue: #1034a6;
+  --blue-deep: #0a2373;
+  --blue-wash: #e6ebf8;
+  /* stone blue: surfaces, lines and whatever is taken */
+  --stone: #7f98a3;
+  --stone-line: #cfdae0;
+  --stone-wash: #eef2f4;
+  /* scarlet: only for time and live state - a running reservation, the live
+     seat map, and what went wrong */
+  --scarlet: #ff2400;
+  --scarlet-text: #c81e00;
+
+  --ink: #101b3d;
+  --muted: #4e6470;
+  --white: #fff;
+  --success: #1e7a4c;
+
+  --font: "Archivo", system-ui, sans-serif;
+  --radius: 0.5rem;
 }
 
 * {
@@ -22,9 +32,28 @@
 }
 
 body {
-  font-family: "Inter", system-ui, sans-serif;
-  background: var(--paper);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.5;
+  background: var(--stone-wash);
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-stretch: 75%;
+  line-height: 1.05;
+}
+
+a {
+  color: var(--blue);
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }
 
 /* read out by screen readers, not shown */
@@ -35,4 +64,165 @@ body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ---------- Wordmark ---------- */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: 1.35rem;
+  letter-spacing: 0.01em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.logo svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+}
+
+/* ---------- Buttons and fields ---------- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font: inherit;
+  font-weight: 650;
+  padding: 0.75rem 1.4rem;
+  border: 2px solid var(--blue);
+  border-radius: var(--radius);
+  background: var(--blue);
+  color: var(--white);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--blue-deep);
+  border-color: var(--blue-deep);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.button--quiet {
+  background: transparent;
+  color: var(--blue);
+}
+
+.button--quiet:hover {
+  background: var(--blue-wash);
+  border-color: var(--blue);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+}
+
+.field > span,
+.field > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--stone);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.input:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 0;
+  border-color: var(--blue);
+}
+
+.error {
+  color: var(--scarlet-text);
+  font-weight: 500;
+}
+
+/* ---------- Visitor pages: frame ---------- */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem clamp(1rem, 4vw, 2.5rem);
+  background: var(--blue);
+  color: var(--white);
+}
+
+.site-header nav {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.95rem;
+}
+
+.site-header nav a {
+  color: var(--white);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.site-header nav a:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.site-header :focus-visible,
+.hero :focus-visible {
+  outline-color: var(--white);
+}
+
+.page__body {
+  flex: 1;
+  width: 100%;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 4vw, 2.5rem) 4rem;
+}
+
+.site-footer {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--stone-line);
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.site-footer p {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

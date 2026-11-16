@@ -2,15 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
   pull_request:
-    branches: [main]
+    branches: [develop, main]
 
 permissions:
   contents: read
 
-# One run per branch at a time: two runs on main side by side would race for
-# the next version and for the commit with the image tags
+# One run per branch at a time: two runs side by side would race for the next
+# version or for the commit with the image tags
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -95,6 +95,21 @@ jobs:
       - name: Build
         run: npm run build
 
+  # What Argo CD deploys has to build. Nothing gets to staging or production
+  # with an overlay that does not.
+  manifests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the overlays
+        run: |
+          for directory in k8s/cluster/* k8s/overlays/* k8s/monitoring; do
+            echo "$directory"
+            kustomize build "$directory" > /dev/null
+          done
+
   # The alert rules against the cases in k8s/monitoring/alerts.test.yml, and
   # the dashboards against JSON syntax. Argo CD deploys k8s/ from main either
   # way; this only tells when a push broke them.
@@ -134,15 +149,17 @@ jobs:
               inspect "/scripts/$(basename "$scenario")" > /dev/null
           done
 
-  # Builds both images once the tests pass on main and pushes them to ghcr.io
+
+
+  # develop: builds both images once the checks pass and pushes them to ghcr.io
   images:
-    needs: [backend, frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, manifests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    # for deploy, which writes the same tag into the overlay
+    # for staging, which writes the same tag into its overlay
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
 
@@ -183,20 +200,76 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
 
-  # Tags a new version when the commits since the last one call for it - fix a
-  # patch, feat a minor, a breaking change a major - and publishes its release
-  # notes. Runs before deploy: semantic-release only releases while main is
-  # still the commit it looks at.
-  release:
+  # develop: has staging run the new images. Argo CD follows develop for
+  # staging, so their tag is committed to its overlay there.
+  staging:
     needs: images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      TAG: ${{ needs.images.outputs.tag }}
 
     steps:
-      # the whole history with its tags, to find the last version and the
-      # commits since
+      - uses: actions/checkout@v7
+
+      - name: Point staging at the new images
+        working-directory: k8s/overlays/staging/images
+        run: |
+          kustomize edit set image \
+            "ghcr.io/kiryl999/cinecloud/backend:$TAG" \
+            "ghcr.io/kiryl999/cinecloud/frontend:$TAG"
+
+      - name: Commit the new tags
+        run: |
+          git fetch origin develop
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/develop)" ]; then
+            echo "::notice::develop moved on during the build; its own run sets the tags"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "deploy(staging): images $TAG"
+          git push origin HEAD:develop \
+            || echo "::notice::develop moved on during the build; its own run sets the tags"
+
+  candidate:
+    needs: [backend, frontend, manifests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Find the images staging runs
+        id: find
+        run: |
+          tag=$(yq '.images[0].newTag' k8s/overlays/staging/images/kustomization.yml)
+          if ! git diff --quiet "${tag#sha-}" HEAD -- backend frontend; then
+            echo "::error::staging runs $tag, which is not the code of this commit"
+            exit 1
+          fi
+          for image in backend frontend; do
+            if ! docker buildx imagetools inspect "ghcr.io/kiryl999/cinecloud/$image:$tag" > /dev/null; then
+              echo "::error::no image $image:$tag"
+              exit 1
+            fi
+          done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: candidate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -204,43 +277,64 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-
-      # the plugins and their order are in .releaserc.json; the preset is not
-      # bundled with semantic-release. Version 9 is the one the release notes
-      # generator is tested with - 10 needs a newer changelog writer than it has.
       - name: Release
         run: npx -p semantic-release@25.0.9 -p conventional-changelog-conventionalcommits@9.3.1 semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Points the minikube overlay at the new images
-  deploy:
-    needs: [images, release]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Read the version of this commit
+        id: version
+        run: echo "version=$(git tag --points-at HEAD --list 'v*' | head -n 1)" >> "$GITHUB_OUTPUT"
+  production:
+    needs: [candidate, release]
+    if: needs.release.outputs.version != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
+    env:
+      CANDIDATE: ${{ needs.candidate.outputs.tag }}
+      VERSION: ${{ needs.release.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Point the minikube overlay at the new images
-        working-directory: k8s/overlays/minikube/images
+      - name: Tag the images with the version
+        run: |
+          for image in backend frontend; do
+            docker buildx imagetools create \
+              --tag "ghcr.io/kiryl999/cinecloud/$image:$VERSION" \
+              "ghcr.io/kiryl999/cinecloud/$image:$CANDIDATE"
+          done
+
+      # with the history, to move develop along below
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Point production at the version
+        working-directory: k8s/overlays/production/images
         run: |
           kustomize edit set image \
-            ghcr.io/kiryl999/cinecloud/backend:${{ needs.images.outputs.tag }} \
-            ghcr.io/kiryl999/cinecloud/frontend:${{ needs.images.outputs.tag }}
+            "ghcr.io/kiryl999/cinecloud/backend:$VERSION" \
+            "ghcr.io/kiryl999/cinecloud/frontend:$VERSION"
 
-      # A newer push to main has a run of its own, which sets newer tags; this
-      # one leaves the overlay alone rather than roll it back
-      - name: Commit the new tags
+      # Pushed with the token of this workflow, the commit starts no run of
+      # its own.
+      - name: Commit the version
         run: |
-          git fetch origin main
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
-            echo "::notice::main moved on during the build; its own run sets the tags"
+          if git diff --quiet; then
+            echo "::notice::production already runs $VERSION"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "deploy: images ${{ needs.images.outputs.tag }} [skip ci]"
+          git commit -am "deploy(production): $VERSION"
           git push origin HEAD:main
+          # develop gets the merge and this commit as well, so that it holds
+          # everything main does - unless it has moved on meanwhile
+          git push origin HEAD:develop \
+            || echo "::notice::develop has moved on; it gets these commits with the next release"
