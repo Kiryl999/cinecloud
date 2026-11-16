@@ -133,6 +133,29 @@ jobs:
       - name: Check the dashboards
         run: jq empty k8s/monitoring/dashboards/*.json
 
+  # The AWS target architecture: formatted, and a configuration Terraform
+  # accepts. Without an account: nothing is planned against AWS here.
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/aws
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.7
+
+      - name: Check the format
+        run: terraform fmt -check -diff
+
+      - name: Validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
   loadtest:
     runs-on: ubuntu-latest
 

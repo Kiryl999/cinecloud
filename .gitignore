@@ -46,3 +46,9 @@ skills-lock.json
 graphify-out/
 # load test output, see loadtest/run.py
 loadtest/results/
+
+# terraform: providers, state and plans stay local; .terraform.lock.hcl is committed
+infra/aws/.terraform/
+infra/aws/*.tfstate*
+infra/aws/*.tfplan
+infra/aws/plan.txt
