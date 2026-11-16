@@ -4,7 +4,7 @@ metadata:
   name: cinecloud-backend
 spec:
   namespaceSelector:
-    matchNames: [cinecloud]
+    matchNames: [cinecloud-staging, cinecloud-production]
   selector:
     matchLabels:
       app.kubernetes.io/name: backend

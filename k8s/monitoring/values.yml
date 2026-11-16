@@ -67,7 +67,7 @@ alertmanager:
         email_configs:
           - to: ops@cinecloud.local
             from: alerts@cinecloud.local
-            smarthost: mailpit.cinecloud.svc.cluster.local:1025
+            smarthost: mailpit.cinecloud-production.svc.cluster.local:1025
             require_tls: false
             send_resolved: true
   alertmanagerSpec:

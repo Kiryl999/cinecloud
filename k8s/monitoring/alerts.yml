@@ -8,9 +8,9 @@ spec:
       rules:
         - alert: CineCloudComponentDown
           expr: |
-            max by (namespace, deployment) (kube_deployment_status_replicas_available{namespace="cinecloud"}) == 0
+            max by (namespace, deployment) (kube_deployment_status_replicas_available{namespace=~"cinecloud-.+"}) == 0
             and on (namespace, deployment)
-            max by (namespace, deployment) (kube_deployment_spec_replicas{namespace="cinecloud"}) > 0
+            max by (namespace, deployment) (kube_deployment_spec_replicas{namespace=~"cinecloud-.+"}) > 0
           for: 2m
           labels:
             severity: critical
@@ -19,9 +19,9 @@ spec:
             description: "{{ $labels.deployment }} in {{ $labels.namespace }} has had no ready pod for 2 minutes."
         - alert: CineCloudComponentDown
           expr: |
-            max by (namespace, statefulset) (kube_statefulset_status_replicas_ready{namespace="cinecloud"}) == 0
+            max by (namespace, statefulset) (kube_statefulset_status_replicas_ready{namespace=~"cinecloud-.+"}) == 0
             and on (namespace, statefulset)
-            max by (namespace, statefulset) (kube_statefulset_replicas{namespace="cinecloud"}) > 0
+            max by (namespace, statefulset) (kube_statefulset_replicas{namespace=~"cinecloud-.+"}) > 0
           for: 2m
           labels:
             severity: critical
@@ -31,49 +31,49 @@ spec:
 
         - alert: CineCloudHighErrorRate
           expr: |
-            sum(rate(http_requests_total{namespace="cinecloud", job="backend", status=~"5.."}[5m]))
-              / sum(rate(http_requests_total{namespace="cinecloud", job="backend"}[5m]))
+            sum by (namespace) (rate(http_requests_total{namespace=~"cinecloud-.+", job="backend", status=~"5.."}[5m]))
+              / sum by (namespace) (rate(http_requests_total{namespace=~"cinecloud-.+", job="backend"}[5m]))
               > 0.05
             and
-            sum(increase(http_requests_total{namespace="cinecloud", job="backend", status=~"5.."}[5m])) >= 5
+            sum by (namespace) (increase(http_requests_total{namespace=~"cinecloud-.+", job="backend", status=~"5.."}[5m])) >= 5
           for: 5m
           labels:
             severity: critical
           annotations:
             summary: "{{ $value | humanizePercentage }} of API requests fail"
-            description: "More than 5 % of the backend's responses have been server errors (5xx) for 5 minutes."
+            description: "More than 5 % of the backend's responses in {{ $labels.namespace }} have been server errors (5xx) for 5 minutes."
 
 
         - alert: CineCloudSlowResponses
           expr: |
             histogram_quantile(0.95,
-              sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace="cinecloud", job="backend"}[5m]))
+              sum by (namespace, le) (rate(http_request_duration_highr_seconds_bucket{namespace=~"cinecloud-.+", job="backend"}[5m]))
             ) > 1
           for: 10m
           labels:
             severity: warning
           annotations:
             summary: "API requests are slow"
-            description: "For 10 minutes, 1 in 20 API requests has taken longer than a second. Right now the slowest 5 % take {{ $value | humanizeDuration }} or more."
+            description: "For 10 minutes, 1 in 20 API requests in {{ $labels.namespace }} has taken longer than a second. Right now the slowest 5 % take {{ $value | humanizeDuration }} or more."
 
         - alert: CineCloudRedisFailing
           expr: |
-            sum(increase(cinecloud_redis_failures_total{namespace="cinecloud", job="backend"}[5m])) > 2
+            sum by (namespace) (increase(cinecloud_redis_failures_total{namespace=~"cinecloud-.+", job="backend"}[5m])) > 2
           for: 1m
           labels:
             severity: critical
           annotations:
             summary: "Redis is failing, guests cannot reserve seats"
-            description: "About {{ $value | humanize }} Redis operations of the backend failed in the last 5 minutes."
+            description: "About {{ $value | humanize }} Redis operations of the backend in {{ $labels.namespace }} failed in the last 5 minutes."
 
         - alert: CineCloudBookingMailsFailing
           expr: |
-            sum(increase(cinecloud_booking_mails_total{namespace="cinecloud", job="backend", outcome="failed"}[15m])) > 0
+            sum by (namespace) (increase(cinecloud_booking_mails_total{namespace=~"cinecloud-.+", job="backend", outcome="failed"}[15m])) > 0
           labels:
             severity: warning
           annotations:
             summary: "Booking confirmations are not being sent"
-            description: "At least one booking confirmation could not be handed to the mail server in the last 15 minutes. The booking is saved; the backend log names its reference."
+            description: "At least one booking confirmation in {{ $labels.namespace }} could not be handed to the mail server in the last 15 minutes. The booking is saved; the backend log names its reference."
 
     - name: argocd
       rules:

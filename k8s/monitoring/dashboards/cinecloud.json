@@ -11,7 +11,23 @@
   "schemaVersion": 41,
   "version": 1,
   "links": [],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "label": "Environment",
+        "type": "custom",
+        "query": "production : cinecloud-production,staging : cinecloud-staging",
+        "current": { "text": "production", "value": "cinecloud-production" },
+        "options": [
+          { "text": "production", "value": "cinecloud-production", "selected": true },
+          { "text": "staging", "value": "cinecloud-staging", "selected": false }
+        ],
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
   "annotations": {
     "list": [
       {
@@ -29,7 +45,7 @@
         "enable": true,
         "hide": false,
         "iconColor": "orange",
-        "expr": "time() - process_start_time_seconds{namespace=\"cinecloud\", job=\"backend\"} < 120",
+        "expr": "time() - process_start_time_seconds{namespace=\"$namespace\", job=\"backend\"} < 120",
         "step": "1m",
         "titleFormat": "Backend pod started",
         "textFormat": "{{pod}}",
@@ -49,7 +65,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(kube_deployment_status_replicas_available{namespace=\"cinecloud\", deployment=\"backend\"})"
+          "expr": "sum(kube_deployment_status_replicas_available{namespace=\"$namespace\", deployment=\"backend\"})"
         }
       ],
       "fieldConfig": {
@@ -86,7 +102,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(http_requests_total{namespace=\"cinecloud\", job=\"backend\"}[5m]))"
+          "expr": "sum(rate(http_requests_total{namespace=\"$namespace\", job=\"backend\"}[5m]))"
         }
       ],
       "fieldConfig": {
@@ -116,7 +132,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "(sum(rate(http_requests_total{namespace=\"cinecloud\", job=\"backend\", status=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{namespace=\"cinecloud\", job=\"backend\"}[5m]))"
+          "expr": "(sum(rate(http_requests_total{namespace=\"$namespace\", job=\"backend\", status=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{namespace=\"$namespace\", job=\"backend\"}[5m]))"
         }
       ],
       "fieldConfig": {
@@ -158,7 +174,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"cinecloud\", job=\"backend\"}[5m])))"
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"$namespace\", job=\"backend\"}[5m])))"
         }
       ],
       "fieldConfig": {
@@ -199,7 +215,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "round(sum(increase(cinecloud_seats_sold_total{namespace=\"cinecloud\", job=\"backend\"}[$__range])))",
+          "expr": "round(sum(increase(cinecloud_seats_sold_total{namespace=\"$namespace\", job=\"backend\"}[$__range])))",
           "instant": true,
           "range": false
         }
@@ -232,7 +248,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(cinecloud_seat_streams_open{namespace=\"cinecloud\", job=\"backend\"})"
+          "expr": "sum(cinecloud_seat_streams_open{namespace=\"$namespace\", job=\"backend\"})"
         }
       ],
       "fieldConfig": {
@@ -269,7 +285,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (handler) (rate(http_requests_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval]))",
+          "expr": "sum by (handler) (rate(http_requests_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval]))",
           "legendFormat": "{{handler}}"
         }
       ],
@@ -296,7 +312,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (status) (rate(http_requests_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval]))",
+          "expr": "sum by (status) (rate(http_requests_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval]))",
           "legendFormat": "{{status}}"
         }
       ],
@@ -338,17 +354,17 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])))",
           "legendFormat": "p50"
         },
         {
           "refId": "B",
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])))",
           "legendFormat": "p95"
         },
         {
           "refId": "C",
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_highr_seconds_bucket{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])))",
           "legendFormat": "p99"
         }
       ],
@@ -374,7 +390,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (handler) (rate(http_request_duration_seconds_sum{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) / sum by (handler) (rate(http_request_duration_seconds_count{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval]))",
+          "expr": "sum by (handler) (rate(http_request_duration_seconds_sum{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) / sum by (handler) (rate(http_request_duration_seconds_count{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval]))",
           "legendFormat": "{{handler}}"
         }
       ],
@@ -409,7 +425,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (outcome) (rate(cinecloud_seat_holds_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) * 60",
+          "expr": "sum by (outcome) (rate(cinecloud_seat_holds_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) * 60",
           "legendFormat": "{{outcome}}"
         }
       ],
@@ -449,7 +465,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (outcome) (rate(cinecloud_bookings_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) * 60",
+          "expr": "sum by (outcome) (rate(cinecloud_bookings_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) * 60",
           "legendFormat": "{{outcome}}"
         }
       ],
@@ -488,7 +504,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(rate(cinecloud_seats_sold_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) * 60",
+          "expr": "sum(rate(cinecloud_seats_sold_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) * 60",
           "legendFormat": "seats"
         }
       ],
@@ -516,7 +532,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (cinecloud_seat_streams_open{namespace=\"cinecloud\", job=\"backend\"})",
+          "expr": "sum by (pod) (cinecloud_seat_streams_open{namespace=\"$namespace\", job=\"backend\"})",
           "legendFormat": "{{pod}}"
         }
       ],
@@ -550,7 +566,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (outcome) (rate(cinecloud_booking_mails_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) * 60",
+          "expr": "sum by (outcome) (rate(cinecloud_booking_mails_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) * 60",
           "legendFormat": "{{outcome}}"
         }
       ],
@@ -590,7 +606,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (context) (rate(cinecloud_redis_failures_total{namespace=\"cinecloud\", job=\"backend\"}[$__rate_interval])) * 60",
+          "expr": "sum by (context) (rate(cinecloud_redis_failures_total{namespace=\"$namespace\", job=\"backend\"}[$__rate_interval])) * 60",
           "legendFormat": "{{context}}"
         }
       ],
@@ -638,7 +654,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"cinecloud\", container!=\"\"}[$__rate_interval]))",
+          "expr": "sum by (container) (rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", container!=\"\"}[$__rate_interval]))",
           "legendFormat": "{{container}}"
         }
       ],
@@ -671,7 +687,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"cinecloud\", container!=\"\"})",
+          "expr": "sum by (container) (container_memory_working_set_bytes{namespace=\"$namespace\", container!=\"\"})",
           "legendFormat": "{{container}}"
         }
       ],
@@ -698,17 +714,17 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max(kube_deployment_spec_replicas{namespace=\"cinecloud\", deployment=\"backend\"})",
+          "expr": "max(kube_deployment_spec_replicas{namespace=\"$namespace\", deployment=\"backend\"})",
           "legendFormat": "desired"
         },
         {
           "refId": "B",
-          "expr": "max(kube_deployment_status_replicas_available{namespace=\"cinecloud\", deployment=\"backend\"})",
+          "expr": "max(kube_deployment_status_replicas_available{namespace=\"$namespace\", deployment=\"backend\"})",
           "legendFormat": "ready"
         },
         {
           "refId": "C",
-          "expr": "max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"cinecloud\", horizontalpodautoscaler=\"backend\"})",
+          "expr": "max(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"$namespace\", horizontalpodautoscaler=\"backend\"})",
           "legendFormat": "maximum"
         }
       ],
@@ -761,17 +777,17 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"cinecloud\", container=\"backend\"}[$__rate_interval]))",
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", container=\"backend\"}[$__rate_interval]))",
           "legendFormat": "{{pod}}"
         },
         {
           "refId": "B",
-          "expr": "max(kube_pod_container_resource_limits{namespace=\"cinecloud\", container=\"backend\", resource=\"cpu\"})",
+          "expr": "max(kube_pod_container_resource_limits{namespace=\"$namespace\", container=\"backend\", resource=\"cpu\"})",
           "legendFormat": "limit"
         },
         {
           "refId": "C",
-          "expr": "max(kube_pod_container_resource_requests{namespace=\"cinecloud\", container=\"backend\", resource=\"cpu\"}) * max(kube_horizontalpodautoscaler_spec_target_metric{namespace=\"cinecloud\", horizontalpodautoscaler=\"backend\", metric_name=\"cpu\"}) / 100",
+          "expr": "max(kube_pod_container_resource_requests{namespace=\"$namespace\", container=\"backend\", resource=\"cpu\"}) * max(kube_horizontalpodautoscaler_spec_target_metric{namespace=\"$namespace\", horizontalpodautoscaler=\"backend\", metric_name=\"cpu\"}) / 100",
           "legendFormat": "autoscaler target"
         }
       ],
@@ -819,12 +835,12 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"cinecloud\", container=\"backend\"})",
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"$namespace\", container=\"backend\"})",
           "legendFormat": "{{pod}}"
         },
         {
           "refId": "B",
-          "expr": "max(kube_pod_container_resource_limits{namespace=\"cinecloud\", container=\"backend\", resource=\"memory\"})",
+          "expr": "max(kube_pod_container_resource_limits{namespace=\"$namespace\", container=\"backend\", resource=\"memory\"})",
           "legendFormat": "limit"
         }
       ],
